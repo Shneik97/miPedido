@@ -17,6 +17,13 @@ class Cliente {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function count(): int {
+        $sql = "SELECT COUNT(*) FROM " . $this->table;
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
     public function create($data) {
         $sql = "INSERT INTO " . $this->table . " (nombre, telefono, email, direccion) 
                 VALUES (:nombre, :telefono, :email, :direccion)";

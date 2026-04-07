@@ -1,11 +1,20 @@
 <?php
 require_once '../app/controllers/ClienteController.php';
+require_once '../app/controllers/ProductoController.php';
+require_once '../app/controllers/DashboardController.php';
+require_once '../app/controllers/PedidoController.php';
+require_once '../app/controllers/UsuarioController.php';
+require_once '../app/controllers/ConfigController.php';
 
 $page = $_GET['page'] ?? 'login';
 
 switch ($page) {
     case 'dashboard':
-        require_once '../app/views/dashboard.php';
+        (new DashboardController())->index();
+        break;
+
+    case '403':
+        require_once '../app/views/403.php';
         break;
 
     case 'clientes':
@@ -33,17 +42,101 @@ switch ($page) {
         $controller->update();
         break;
 
-    case 'clientes_delete': // <- ruta para eliminar
+    case 'clientes_delete':
         if (isset($_GET['id'])) {
             $controller = new ClienteController();
             $controller->delete($_GET['id']);
         }
         break;
 
+    case 'productos':
+        $controller = new ProductoController();
+        $controller->index();
+        break;
+
+    case 'productos_create':
+        $controller = new ProductoController();
+        $controller->create();
+        break;
+
+    case 'productos_store':
+        $controller = new ProductoController();
+        $controller->store();
+        break;
+
+    case 'productos_edit':
+        $controller = new ProductoController();
+        $controller->edit();
+        break;
+
+    case 'productos_update':
+        $controller = new ProductoController();
+        $controller->update();
+        break;
+
+    case 'productos_delete':
+        if (isset($_GET['id'])) {
+            $controller = new ProductoController();
+            $controller->delete($_GET['id']);
+        }
+        break;
+
+    case 'pedidos':
+        (new PedidoController())->index();
+        break;
+
+    case 'pedidos_create':
+        (new PedidoController())->create();
+        break;
+
+    case 'pedidos_store':
+        (new PedidoController())->store();
+        break;
+
+    case 'pedidos_delete':
+        if (isset($_GET['id'])) {
+            (new PedidoController())->delete($_GET['id']);
+        }
+        break;
+
+    case 'pedido_factura':
+        (new PedidoController())->factura();
+        break;
+
+    case 'usuarios':
+        (new UsuarioController())->index();
+        break;
+
+    case 'usuarios_create':
+        (new UsuarioController())->create();
+        break;
+
+    case 'usuarios_store':
+        (new UsuarioController())->store();
+        break;
+
+    case 'usuarios_edit':
+        (new UsuarioController())->edit();
+        break;
+
+    case 'usuarios_update':
+        (new UsuarioController())->update();
+        break;
+
+    case 'usuarios_delete':
+        if (isset($_GET['id'])) {
+            (new UsuarioController())->delete((string) $_GET['id']);
+        }
+        break;
+
+    case 'config':
+        (new ConfigController())->index();
+        break;
+
     case 'logout':
         session_start();
         session_destroy();
-        header("Location: index.php");
+        header('Location: index.php');
         break;
 
     default:

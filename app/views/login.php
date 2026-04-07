@@ -1,21 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login - MiPedido</title>
-</head>
-<body>
-
-<h2>Iniciar sesión</h2>
-
-<form method="POST" action="">
-    <label>Email:</label><br>
-    <input type="email" name="email" required><br><br>
-
-    <label>Password:</label><br>
-    <input type="password" name="password" required><br><br>
-
-    <button type="submit">Entrar</button>
-</form>
-
-</body>
-</html>
+<?php
+$pageTitle = 'Iniciar sesión';
+$showSidebar = false;
+$currentNav = '';
+$loginError = $_SESSION['login_error'] ?? null;
+unset($_SESSION['login_error']);
+ob_start();
+?>
+<div class="row justify-content-center w-100">
+    <div class="col-12 col-md-6 col-lg-5 col-xl-4">
+        <div class="card page-card shadow">
+            <div class="card-body p-4">
+                <?php if (!empty($loginError)): ?>
+                    <div class="alert alert-danger py-2 small" role="alert"><?= htmlspecialchars($loginError) ?></div>
+                <?php endif; ?>
+                <div class="text-center mb-4">
+                    <i class="fa-solid fa-cubes fa-3x text-primary mb-2"></i>
+                    <h1 class="h4 mb-0">Iniciar sesión</h1>
+                    <p class="text-muted small mb-0">ERP miPedido</p>
+                </div>
+                <form method="POST" action="">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-envelope text-muted"></i></span>
+                            <input type="email" class="form-control" name="email" id="email" required autocomplete="username">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Contraseña</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fa-solid fa-lock text-muted"></i></span>
+                            <input type="password" class="form-control" name="password" id="password" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/layouts/main.php';

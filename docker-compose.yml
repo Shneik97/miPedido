@@ -1,0 +1,17 @@
+# MySQL local para desarrollo. Puerto host 3307 -> 3306 del contenedor (coherente con config/database.php).
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mipedido-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mipedido
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./config/database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+volumes:
+  mysql_data:

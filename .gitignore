@@ -1,0 +1,44 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+.idea/
+
+# Dependencies / builds
+node_modules/
+vendor/
+dist/
+build/
+coverage/
+
+# Logs / temp
+*.log
+*.tmp
+*.temp
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Local databases / dumps
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+*.dump
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Cache
+.cache/
+.phpunit.result.cache
+
+# Uploads/runtime (if used)
+storage/
+public/uploads/

@@ -1,15 +1,15 @@
 <?php
-$pageTitle = 'Clientes';
-$currentNav = 'clientes';
+$pageTitle = 'Productos';
+$currentNav = 'productos';
 ob_start();
 ?>
 <div class="card page-card">
     <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-            <h1 class="h4 mb-0">Clientes</h1>
+            <h1 class="h4 mb-0">Productos</h1>
             <?php if (!empty($isAdmin)): ?>
-            <a href="index.php?page=clientes_create" class="btn btn-success">
-                <i class="fa-solid fa-plus me-1"></i>Nuevo cliente
+            <a href="index.php?page=productos_create" class="btn btn-success">
+                <i class="fa-solid fa-plus me-1"></i>Nuevo producto
             </a>
             <?php endif; ?>
         </div>
@@ -19,34 +19,34 @@ ob_start();
                     <tr>
                         <th>ID</th>
                         <th>Nombre</th>
-                        <th>Teléfono</th>
-                        <th>Email</th>
-                        <th>Dirección</th>
+                        <th>Descripción</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">Stock</th>
                         <th class="text-end" style="width: 8rem;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (!empty($clientes)): ?>
-                        <?php foreach ($clientes as $cliente): ?>
+                    <?php if (!empty($productos)): ?>
+                        <?php foreach ($productos as $row): ?>
                             <tr>
-                                <td><?= (int) $cliente['id'] ?></td>
-                                <td><?= htmlspecialchars($cliente['nombre']) ?></td>
-                                <td><?= htmlspecialchars((string) $cliente['telefono']) ?></td>
-                                <td><?= htmlspecialchars((string) $cliente['email']) ?></td>
-                                <td><?= htmlspecialchars((string) $cliente['direccion']) ?></td>
+                                <td><?= (int) $row['id'] ?></td>
+                                <td><?= htmlspecialchars($row['nombre']) ?></td>
+                                <td class="text-muted small"><?= htmlspecialchars((string) $row['descripcion']) ?></td>
+                                <td class="text-end"><?= number_format((float) $row['precio'], 2, ',', '.') ?> €</td>
+                                <td class="text-end"><?= (int) $row['stock'] ?></td>
                                 <td class="text-end text-nowrap">
                                     <?php if (!empty($isAdmin)): ?>
-                                    <a href="index.php?page=clientes_edit&id=<?= (int) $cliente['id'] ?>"
+                                    <a href="index.php?page=productos_edit&id=<?= (int) $row['id'] ?>"
                                        class="btn btn-sm btn-outline-primary"
                                        title="Editar">
                                         <i class="fa-solid fa-pen"></i>
                                     </a>
                                     <?php endif; ?>
                                     <?php if (!empty($isAdmin)): ?>
-                                    <a href="index.php?page=clientes_delete&id=<?= (int) $cliente['id'] ?>"
+                                    <a href="index.php?page=productos_delete&id=<?= (int) $row['id'] ?>"
                                        class="btn btn-sm btn-outline-danger js-confirm-delete"
                                        title="Eliminar"
-                                       data-confirm-message="¿Eliminar este cliente?">
+                                       data-confirm-message="¿Eliminar este producto?">
                                         <i class="fa-solid fa-trash"></i>
                                     </a>
                                     <?php endif; ?>
@@ -55,7 +55,7 @@ ob_start();
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">No hay clientes registrados.</td>
+                            <td colspan="6" class="text-center text-muted py-4">No hay productos registrados.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
