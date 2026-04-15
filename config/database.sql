@@ -43,3 +43,21 @@ CREATE TABLE detalle_pedidos (
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
     FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE
 );
+
+-- Desarrollo: admin@test.com / admin123 (password_hash bcrypt, verificado con password_verify)
+INSERT INTO usuarios (nombre, email, password, rol) VALUES (
+    'Admin',
+    'admin@test.com',
+    '$2y$12$riDn8HmrlUD3J7SWkvT5weT604Db.5u/ICUgueHrBA66hRHBGuhGm',
+    'admin'
+);
+
+-- Usuario de aplicación (coherente con config/database.php: 127.0.0.1:3307).
+-- En Docker solo se ejecuta con volumen nuevo; entornos ya creados: fix_mysql_app_user.sql
+CREATE USER 'user_mipedido'@'localhost' IDENTIFIED BY '12345';
+CREATE USER 'user_mipedido'@'127.0.0.1' IDENTIFIED BY '12345';
+CREATE USER 'user_mipedido'@'%' IDENTIFIED BY '12345';
+GRANT SELECT, INSERT, UPDATE, DELETE ON mipedido.* TO 'user_mipedido'@'localhost';
+GRANT SELECT, INSERT, UPDATE, DELETE ON mipedido.* TO 'user_mipedido'@'127.0.0.1';
+GRANT SELECT, INSERT, UPDATE, DELETE ON mipedido.* TO 'user_mipedido'@'%';
+FLUSH PRIVILEGES;
