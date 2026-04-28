@@ -6,7 +6,29 @@ CREATE TABLE usuarios (
     nombre VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    rol ENUM('admin', 'empleado') DEFAULT 'empleado'
+    rol ENUM('admin', 'empleado') DEFAULT 'empleado',
+    preferencias_ui JSON NULL DEFAULT NULL,
+    failed_login_count INT NOT NULL DEFAULT 0 COMMENT 'Intentos fallidos acumulados antes del próximo bloqueo',
+    failed_login_stage TINYINT NOT NULL DEFAULT 0 COMMENT '0=próximo bloqueo de 15 min, 1=próximo bloqueo de 24 h',
+    login_blocked_until DATETIME NULL DEFAULT NULL COMMENT 'Si tiene fecha futura, no puede iniciar sesión'
+);
+
+-- Catálogo de permisos finos (independiente del rol admin/empleado).
+CREATE TABLE permisos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    clave VARCHAR(80) NOT NULL UNIQUE,
+    nombre VARCHAR(120) NOT NULL,
+    descripcion VARCHAR(255) NOT NULL DEFAULT '',
+    orden_visual INT NOT NULL DEFAULT 0
+);
+
+-- Relación N:N entre usuarios y permisos marcados por el admin.
+CREATE TABLE usuario_permisos (
+    usuario_id INT NOT NULL,
+    permiso_id INT NOT NULL,
+    PRIMARY KEY (usuario_id, permiso_id),
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (permiso_id) REFERENCES permisos(id) ON DELETE CASCADE
 );
 
 CREATE TABLE clientes (
@@ -29,8 +51,9 @@ CREATE TABLE pedidos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cliente_id INT NOT NULL,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    estado ENUM('pendiente', 'en_proceso', 'enviado', 'entregado', 'cancelado') DEFAULT 'pendiente',
+    estado ENUM('pendiente', 'en_proceso', 'enviado', 'entregado', 'cancelado', 'realizado') DEFAULT 'pendiente',
     metodo_pago ENUM('efectivo', 'tarjeta', 'transferencia') NOT NULL DEFAULT 'efectivo',
+    fecha_realizado DATETIME NULL DEFAULT NULL,
     FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
 );
 
@@ -44,6 +67,33 @@ CREATE TABLE detalle_pedidos (
     FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE
 );
 
+CREATE TABLE pedido_historial (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id INT NOT NULL,
+    usuario_id INT NULL,
+    accion VARCHAR(80) NOT NULL,
+    detalle TEXT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+CREATE TABLE tareas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(200) NOT NULL,
+    descripcion TEXT NULL,
+    asignado_a INT NOT NULL,
+    creado_por INT NOT NULL,
+    estado ENUM('pendiente', 'en_curso', 'hecha') NOT NULL DEFAULT 'pendiente',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_limite DATETIME NULL,
+    pedido_id INT NULL,
+    es_personal TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = tarea propia del calendario; 0 = asignada por jefe/admin',
+    FOREIGN KEY (asignado_a) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id) ON DELETE SET NULL
+);
+
 -- Desarrollo: admin@test.com / admin123 (password_hash bcrypt, verificado con password_verify)
 INSERT INTO usuarios (nombre, email, password, rol) VALUES (
     'Admin',
@@ -51,6 +101,18 @@ INSERT INTO usuarios (nombre, email, password, rol) VALUES (
     '$2y$12$riDn8HmrlUD3J7SWkvT5weT604Db.5u/ICUgueHrBA66hRHBGuhGm',
     'admin'
 );
+
+INSERT INTO permisos (clave, nombre, descripcion, orden_visual) VALUES
+('dashboard_ver', 'Ver dashboard', 'Acceso al panel principal.', 10),
+('clientes_gestionar', 'Gestionar clientes', 'Crear/editar/eliminar clientes.', 20),
+('productos_gestionar', 'Gestionar productos', 'Crear/editar/eliminar productos.', 30),
+('pedidos_gestionar', 'Gestionar pedidos', 'Crear pedidos y cambiar estados.', 40),
+('ventas_ver', 'Ver ventas', 'Consultar módulo de ventas.', 50),
+('facturacion_ver', 'Ver facturación', 'Consultar módulo de facturación.', 60),
+('tareas_gestionar', 'Gestionar tareas', 'Crear o cambiar estado de tareas.', 70),
+('calendario_ver', 'Ver calendario', 'Acceso al calendario mensual.', 80),
+('usuarios_gestionar', 'Gestionar usuarios', 'Administrar cuentas de usuarios.', 90),
+('configuracion_ver', 'Ver configuración', 'Acceso a la pantalla de configuración.', 100);
 
 -- Usuario de aplicación (coherente con config/database.php: 127.0.0.1:3307).
 -- En Docker solo se ejecuta con volumen nuevo; entornos ya creados: fix_mysql_app_user.sql

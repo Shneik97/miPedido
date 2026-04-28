@@ -5,9 +5,7 @@ require_once __DIR__ . '/../models/Producto.php';
 class ProductoController {
 
     private function requireAuth(): void {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
             header('Location: index.php');
             exit;
@@ -31,6 +29,10 @@ class ProductoController {
     public function store() {
         $this->requireAuth();
         checkRole('admin');
+        if (!csrfIsValidRequest()) {
+            header('Location: index.php?page=productos&error=csrf');
+            exit;
+        }
         $producto = new Producto();
         $producto->create($this->normalizeProductoPost($_POST));
         header('Location: index.php?page=productos');
@@ -53,6 +55,10 @@ class ProductoController {
     public function update() {
         $this->requireAuth();
         checkRole('admin');
+        if (!csrfIsValidRequest()) {
+            header('Location: index.php?page=productos&error=csrf');
+            exit;
+        }
         $id = $_POST['id'];
         $producto = new Producto();
         $producto->update($id, $this->normalizeProductoPost($_POST));

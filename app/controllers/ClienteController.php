@@ -8,9 +8,7 @@ class ClienteController {
      * Impide el acceso al módulo de clientes sin sesión iniciada.
      */
     private function requireAuth(): void {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
             header('Location: index.php');
             exit;
@@ -34,6 +32,11 @@ class ClienteController {
     public function store() {
         $this->requireAuth();
         checkRole('admin');
+        // CSRF: solo aceptamos el formulario generado por nuestra app.
+        if (!csrfIsValidRequest()) {
+            header('Location: index.php?page=clientes&error=csrf');
+            exit;
+        }
         $cliente = new Cliente();
         $cliente->create($_POST);
         header('Location: index.php?page=clientes');
@@ -56,6 +59,10 @@ class ClienteController {
     public function update() {
         $this->requireAuth();
         checkRole('admin');
+        if (!csrfIsValidRequest()) {
+            header('Location: index.php?page=clientes&error=csrf');
+            exit;
+        }
         $id = $_POST['id'];
         $cliente = new Cliente();
         $cliente->update($id, $_POST);

@@ -1,16 +1,45 @@
 <?php
+require_once '../app/helpers/auth_helper.php';
 require_once '../app/controllers/ClienteController.php';
 require_once '../app/controllers/ProductoController.php';
 require_once '../app/controllers/DashboardController.php';
 require_once '../app/controllers/PedidoController.php';
 require_once '../app/controllers/UsuarioController.php';
 require_once '../app/controllers/ConfigController.php';
+require_once '../app/controllers/TareaController.php';
+require_once '../app/controllers/CalendarioController.php';
+require_once '../app/controllers/MiEntornoController.php';
+require_once '../app/controllers/LoginController.php';
 
-$page = $_GET['page'] ?? 'login';
+$page = $_GET['page'] ?? 'home';
 
 switch ($page) {
     case 'dashboard':
         (new DashboardController())->index();
+        break;
+
+    case 'home':
+        require_once '../app/views/home.php';
+        break;
+
+    case 'login':
+        (new LoginController())->login();
+        break;
+
+    case 'register':
+        (new LoginController())->register();
+        break;
+
+    case 'register_store':
+        (new LoginController())->registerStore();
+        break;
+
+    case 'auth_google_start':
+        (new LoginController())->authGoogleStart();
+        break;
+
+    case 'auth_google_callback':
+        (new LoginController())->authGoogleCallback();
         break;
 
     case '403':
@@ -103,6 +132,50 @@ switch ($page) {
         (new PedidoController())->factura();
         break;
 
+    case 'pedido_factura_guardar':
+        (new PedidoController())->facturaGuardar();
+        break;
+
+    case 'pedidos_marcar_realizado':
+        (new PedidoController())->marcarRealizado();
+        break;
+
+    case 'pedidos_historial':
+        (new PedidoController())->historial();
+        break;
+
+    case 'ventas':
+        (new PedidoController())->ventas();
+        break;
+
+    case 'facturacion':
+        (new PedidoController())->facturacion();
+        break;
+
+    case 'tareas':
+        (new TareaController())->index();
+        break;
+
+    case 'tareas_create':
+        (new TareaController())->create();
+        break;
+
+    case 'tareas_store':
+        (new TareaController())->store();
+        break;
+
+    case 'tareas_estado':
+        (new TareaController())->cambiarEstado();
+        break;
+
+    case 'calendario':
+        (new CalendarioController())->index();
+        break;
+
+    case 'calendario_personal_store':
+        (new CalendarioController())->storePersonal();
+        break;
+
     case 'usuarios':
         (new UsuarioController())->index();
         break;
@@ -133,14 +206,24 @@ switch ($page) {
         (new ConfigController())->index();
         break;
 
+    case 'mi_entorno':
+        (new MiEntornoController())->index();
+        break;
+
+    case 'mi_entorno_update':
+        (new MiEntornoController())->update();
+        break;
+
     case 'logout':
-        session_start();
+        authEnsureSession();
+        $_SESSION = [];
         session_destroy();
-        header('Location: index.php');
+        require_once __DIR__ . '/../app/helpers/preferencias_ui_helper.php';
+        mipedido_sidebar_clear_collapse_cookie();
+        header('Location: index.php?page=home');
         break;
 
     default:
-        require_once '../app/controllers/LoginController.php';
-        require_once '../app/views/login.php';
+        (new LoginController())->login();
         break;
 }

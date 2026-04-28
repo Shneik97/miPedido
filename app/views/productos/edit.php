@@ -7,6 +7,7 @@ ob_start();
     <div class="card-body">
         <h1 class="h4 mb-4">Editar producto</h1>
         <form action="index.php?page=productos_update" method="POST" class="col-lg-8">
+            <?= csrfInput() ?>
             <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre</label>

@@ -3,7 +3,9 @@ $pageTitle = 'Iniciar sesión';
 $showSidebar = false;
 $currentNav = '';
 $loginError = $_SESSION['login_error'] ?? null;
+$registerOk = $_SESSION['register_ok'] ?? null;
 unset($_SESSION['login_error']);
+unset($_SESSION['register_ok']);
 ob_start();
 ?>
 <div class="row justify-content-center w-100">
@@ -13,12 +15,16 @@ ob_start();
                 <?php if (!empty($loginError)): ?>
                     <div class="alert alert-danger py-2 small" role="alert"><?= htmlspecialchars($loginError) ?></div>
                 <?php endif; ?>
+                <?php if (!empty($registerOk)): ?>
+                    <div class="alert alert-success py-2 small" role="alert"><?= htmlspecialchars($registerOk) ?></div>
+                <?php endif; ?>
                 <div class="text-center mb-4">
                     <i class="fa-solid fa-cubes fa-3x text-primary mb-2"></i>
                     <h1 class="h4 mb-0">Iniciar sesión</h1>
                     <p class="text-muted small mb-0">ERP miPedido</p>
                 </div>
-                <form method="POST" action="">
+                <form method="POST" action="index.php?page=login">
+                    <?= csrfInput() ?>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
                         <div class="input-group">
@@ -37,6 +43,11 @@ ob_start();
                         <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
                     </button>
                 </form>
+                <div class="text-center mt-3">
+                    <a href="index.php?page=register" class="small text-decoration-none">Crear cuenta nueva</a>
+                    <span class="mx-1 text-muted">·</span>
+                    <a href="index.php?page=home" class="small text-decoration-none">Ver presentación</a>
+                </div>
             </div>
         </div>
     </div>

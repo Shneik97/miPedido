@@ -1,0 +1,81 @@
+<?php
+/**
+ * Integración "ligera" con WhatsApp: enlaces wa.me sin API de Meta.
+ * El envío real lo confirma el usuario en su app WhatsApp (web o móvil).
+ */
+
+/**
+ * Normaliza un teléfono típico en España para usarlo en wa.me (solo dígitos, sin +).
+ * Acepta números de 9 cifras móvil/fijo (6–9) anteponiendo 34; si ya lleva prefijo internacional, lo conserva.
+ */
+function normalizarTelefonoEspana(string $raw): ?string {
+    $digits = preg_replace('/\D+/', '', $raw);
+    if ($digits === null || $digits === '') {
+        return null;
+    }
+    // Móviles ESP suelen ser 9 cifras empezando por 6, 7 u otros; se antepone prefijo 34.
+    if (strlen($digits) === 9 && ($digits[0] >= '6' && $digits[0] <= '9')) {
+        $digits = '34' . $digits;
+    }
+    if (strlen($digits) < 10 || strlen($digits) > 15) {
+        return null;
+    }
+    return $digits;
+}
+
+/**
+ * Construye la URL https://wa.me/NUMERO?text=MENSAJE (solo el texto va codificado; el número son dígitos).
+ */
+function waMeUrl(string $digitosInternacionales, string $mensaje): string {
+    return 'https://wa.me/' . $digitosInternacionales . '?text=' . rawurlencode($mensaje);
+}
+
+/**
+ * Texto plano con resumen del pedido para pegar en WhatsApp o prellenar wa.me.
+ *
+ * @param array  $pedido        Fila de getById (incluye cliente_nombre, id, total si se pasa aparte).
+ * @param array  $lineas        Líneas tipo getLineasFactura (producto_nombre, cantidad, precio_unitario).
+ * @param string $facturaRelUrl URL relativa a la factura (p. ej. index.php?page=pedido_factura&id=1).
+ */
+function textoResumenPedido(array $pedido, array $lineas, string $facturaRelUrl = ''): string {
+    $id = (int) ($pedido['id'] ?? 0);
+    $cliente = (string) ($pedido['cliente_nombre'] ?? '');
+    $lines = [];
+    $total = 0.0;
+    foreach ($lineas as $ln) {
+        $nombre = (string) ($ln['producto_nombre'] ?? '');
+        $qty = (int) ($ln['cantidad'] ?? 0);
+        $pu = (float) ($ln['precio_unitario'] ?? 0);
+        $sub = $qty * $pu;
+        $total += $sub;
+        $lines[] = '- ' . $nombre . ' x' . $qty . ' @ ' . number_format($pu, 2, ',', '.') . ' €';
+    }
+    $bloqueLineas = $lines !== [] ? implode("\n", $lines) : '(sin líneas)';
+    $msg = "Hola, te envío el resumen del pedido #{$id} (miPedido).\n";
+    $msg .= "Cliente: {$cliente}\n";
+    $msg .= "Líneas:\n{$bloqueLineas}\n";
+    $msg .= 'Total: ' . number_format($total, 2, ',', '.') . " €\n";
+    if ($facturaRelUrl !== '') {
+        $msg .= "Factura / detalle: {$facturaRelUrl}\n";
+    }
+    $msg .= "\n(En producción conviene usar una URL pública HTTPS a la factura.)";
+    return $msg;
+}
+
+/**
+ * Mensaje breve para WhatsApp desde el listado de pedidos (usa total ya calculado en la fila).
+ */
+function textoWhatsappPedidoCorto(array $filaResumen, string $facturaRelUrl): string {
+    $id = (int) ($filaResumen['id'] ?? 0);
+    $cliente = (string) ($filaResumen['cliente_nombre'] ?? '');
+    $total = (float) ($filaResumen['total'] ?? 0);
+    $estado = (string) ($filaResumen['estado'] ?? '');
+    $msg = "Hola, te informo del pedido #{$id} (ERP miPedido).\n";
+    $msg .= "Cliente: {$cliente}\n";
+    $msg .= 'Estado: ' . $estado . "\n";
+    $msg .= 'Total: ' . number_format($total, 2, ',', '.') . " €\n";
+    if ($facturaRelUrl !== '') {
+        $msg .= "Enlace factura: {$facturaRelUrl}\n";
+    }
+    return $msg;
+}

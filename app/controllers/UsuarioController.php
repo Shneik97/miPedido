@@ -30,6 +30,10 @@ class UsuarioController {
 
     public function store(): void {
         $this->requireAdmin();
+        if (!csrfIsValidRequest()) {
+            header('Location: index.php?page=usuarios_create&error=csrf');
+            exit;
+        }
         $nombre = trim((string) ($_POST['nombre'] ?? ''));
         $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
@@ -50,7 +54,15 @@ class UsuarioController {
             exit;
         }
 
-        $model->create($nombre, $email, $password, $rol);
+        $newId = $model->create($nombre, $email, $password, $rol);
+        // Alta simple: admin recibe todos los permisos de catálogo por defecto.
+        if ($rol === 'admin') {
+            $catalogo = $model->getCatalogoPermisos();
+            $allClaves = array_map(static function (array $p): string {
+                return (string) ($p['clave'] ?? '');
+            }, $catalogo);
+            $model->setPermisosByUsuarioId($newId, $allClaves);
+        }
         header('Location: index.php?page=usuarios&ok=creado');
         exit;
     }
@@ -58,16 +70,29 @@ class UsuarioController {
     public function edit(): void {
         $this->requireAdmin();
         $id = (int) ($_GET['id'] ?? 0);
-        $u = (new Usuario())->getById($id);
+        $model = new Usuario();
+        $u = $model->getById($id);
         if (!$u) {
             header('Location: index.php?page=usuarios');
             exit;
+        }
+        // Contexto para renderizar checkboxes de permisos en la vista.
+        try {
+            $catalogoPermisos = $model->getCatalogoPermisos();
+            $permisosUsuario = $model->getPermisosByUsuarioId($id);
+        } catch (Throwable $e) {
+            $catalogoPermisos = [];
+            $permisosUsuario = [];
         }
         require __DIR__ . '/../views/usuarios/edit.php';
     }
 
     public function update(): void {
         $this->requireAdmin();
+        if (!csrfIsValidRequest()) {
+            header('Location: index.php?page=usuarios&error=csrf');
+            exit;
+        }
         $id = (int) ($_POST['id'] ?? 0);
         $model = new Usuario();
         $actual = $model->getById($id);
@@ -103,6 +128,28 @@ class UsuarioController {
 
         $pwd = $passwordNew !== '' ? $passwordNew : null;
         $model->update($id, $nombre, $email, $rol, $pwd);
+
+        // Gestión de permisos por admin:
+        // - si marca "todos", se aplican todas las claves del catálogo.
+        // - si no, se aplican solo las seleccionadas.
+        try {
+            $catalogoPermisos = $model->getCatalogoPermisos();
+            $todasClaves = array_values(array_filter(array_map(static function (array $p): string {
+                return (string) ($p['clave'] ?? '');
+            }, $catalogoPermisos)));
+            $permisosPost = $_POST['permisos'] ?? [];
+            if (!is_array($permisosPost)) {
+                $permisosPost = [];
+            }
+            // Importante: guardamos exactamente lo que llega en checkboxes "permisos[]".
+            // El check "permiso_todos" solo sirve como ayuda visual en frontend para marcar rápido.
+            // Si usamos "permiso_todos" como fuente aquí, acabaríamos pisando selección personalizada.
+            $clavesFinales = array_map('strval', $permisosPost);
+            $model->setPermisosByUsuarioId($id, $clavesFinales);
+        } catch (Throwable $e) {
+            header('Location: index.php?page=usuarios_edit&id=' . $id . '&error=permisos_db');
+            exit;
+        }
 
         if ($sessionId === $id) {
             $_SESSION['usuario']['nombre'] = $nombre;

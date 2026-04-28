@@ -6,6 +6,7 @@ $errMsg = [
     'invalido' => 'Completa nombre y un email válido.',
     'email_duplicado' => 'Ya existe un usuario con ese email.',
     'password_corta' => 'La contraseña debe tener al menos 6 caracteres.',
+    'csrf' => 'La sesión del formulario ha caducado. Recarga la página e inténtalo de nuevo.',
 ];
 ob_start();
 ?>
@@ -16,6 +17,7 @@ ob_start();
             <div class="alert alert-danger"><?= htmlspecialchars($errMsg[$err]) ?></div>
         <?php endif; ?>
         <form action="index.php?page=usuarios_store" method="post" class="col-lg-8" autocomplete="off">
+            <?= csrfInput() ?>
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre</label>
                 <input type="text" name="nombre" id="nombre" class="form-control" required maxlength="100">

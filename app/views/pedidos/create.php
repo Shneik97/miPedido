@@ -13,6 +13,8 @@ ob_start();
                     Stock insuficiente para la cantidad solicitada.
                 <?php elseif ($error === 'invalid'): ?>
                     Datos no válidos. Selecciona cliente y producto.
+                <?php elseif ($error === 'csrf'): ?>
+                    El formulario ha caducado. Recarga la página e inténtalo de nuevo.
                 <?php else: ?>
                     No se pudo crear el pedido.
                 <?php endif; ?>
@@ -20,6 +22,7 @@ ob_start();
         <?php endif; ?>
 
         <form action="index.php?page=pedidos_store" method="POST" class="col-lg-8">
+            <?= csrfInput() ?>
             <div class="mb-3">
                 <label for="cliente_id" class="form-label">Cliente</label>
                 <select name="cliente_id" id="cliente_id" class="form-select" required>

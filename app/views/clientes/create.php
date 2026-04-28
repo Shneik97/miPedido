@@ -7,6 +7,7 @@ ob_start();
     <div class="card-body">
         <h1 class="h4 mb-4">Crear cliente</h1>
         <form action="index.php?page=clientes_store" method="POST" class="col-lg-8">
+            <?= csrfInput() ?>
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre</label>
                 <input type="text" name="nombre" id="nombre" class="form-control" required>
