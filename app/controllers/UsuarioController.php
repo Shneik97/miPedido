@@ -2,8 +2,14 @@
 require_once __DIR__ . '/../helpers/auth_helper.php';
 require_once __DIR__ . '/../models/Usuario.php';
 
+/**
+ * Gestión de usuarios (solo administrador).
+ */
 class UsuarioController {
 
+    /**
+     * Exige sesión activa y rol admin.
+     */
     private function requireAdmin(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
@@ -13,6 +19,9 @@ class UsuarioController {
         checkRole('admin');
     }
 
+    /**
+     * Normaliza el rol permitido por formulario.
+     */
     private function normalizeRol(string $rol): string {
         return in_array($rol, ['admin', 'empleado'], true) ? $rol : 'empleado';
     }

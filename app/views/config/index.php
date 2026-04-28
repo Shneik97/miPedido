@@ -1,4 +1,5 @@
 <?php
+// Página de configuración general reservada para administradores.
 $pageTitle = 'Configuración';
 $currentNav = 'config';
 ob_start();

@@ -5,8 +5,14 @@ require_once __DIR__ . '/../models/Pedido.php';
 require_once __DIR__ . '/../models/Producto.php';
 require_once __DIR__ . '/../models/Tarea.php';
 
+/**
+ * Dashboard principal con KPIs y paneles de resumen.
+ */
 class DashboardController {
 
+    /**
+     * Carga datos del panel y renderiza la vista.
+     */
     public function index(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
@@ -14,6 +20,7 @@ class DashboardController {
             exit;
         }
 
+        // Métricas rápidas para tarjetas superiores.
         $totalClientes = (new Cliente())->count();
         $pedidosPendientes = (new Pedido())->countPendientes();
         $totalProductos = (new Producto())->count();
@@ -25,6 +32,7 @@ class DashboardController {
             $tareasPendientesNav = 0;
         }
 
+        // Datos de ventas y estado para gráficos del dashboard.
         $pedidoModel = new Pedido();
         // Navegación de ventas por bloques de 6 meses (máximo 3 años atrás).
         $bloqueMeses = 6;

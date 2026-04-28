@@ -1,4 +1,5 @@
 <?php
+// Formulario para actualizar nombre, precio, stock y descripción del producto.
 $pageTitle = 'Editar producto';
 $currentNav = 'productos';
 ob_start();

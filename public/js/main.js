@@ -1,6 +1,73 @@
 (function () {
     'use strict';
 
+    var consentStorageKey = 'mipedido_cookie_consent';
+    var consentCookieName = 'mipedido_cookie_consent';
+    var consentCookieMaxAge = 365 * 24 * 60 * 60;
+
+    function setCookie(name, value, maxAge) {
+        document.cookie = name + '=' + value + '; path=/; max-age=' + maxAge + '; SameSite=Lax';
+    }
+
+    function getCookie(name) {
+        var parts = document.cookie ? document.cookie.split('; ') : [];
+        for (var i = 0; i < parts.length; i++) {
+            var kv = parts[i].split('=');
+            if (kv[0] === name) {
+                return kv.slice(1).join('=');
+            }
+        }
+        return '';
+    }
+
+    function getCookieConsentValue() {
+        var fromStorage = '';
+        try {
+            fromStorage = localStorage.getItem(consentStorageKey) || '';
+        } catch (ignore) { /* localStorage no disponible */ }
+        if (fromStorage === 'accepted' || fromStorage === 'rejected') {
+            return fromStorage;
+        }
+        var fromCookie = getCookie(consentCookieName);
+        return (fromCookie === 'accepted' || fromCookie === 'rejected') ? fromCookie : '';
+    }
+
+    function setCookieConsentValue(value) {
+        try {
+            localStorage.setItem(consentStorageKey, value);
+        } catch (ignore) { /* localStorage no disponible */ }
+        setCookie(consentCookieName, value, consentCookieMaxAge);
+    }
+
+    function hasFunctionalConsent() {
+        return getCookieConsentValue() === 'accepted';
+    }
+
+    function initCookieBanner() {
+        var banner = document.getElementById('cookieBanner');
+        var acceptBtn = document.getElementById('cookieAcceptBtn');
+        var rejectBtn = document.getElementById('cookieRejectBtn');
+        if (!banner || !acceptBtn || !rejectBtn) {
+            return;
+        }
+        if (getCookieConsentValue() !== '') {
+            banner.hidden = true;
+            return;
+        }
+        banner.hidden = false;
+        acceptBtn.addEventListener('click', function () {
+            setCookieConsentValue('accepted');
+            banner.hidden = true;
+        });
+        rejectBtn.addEventListener('click', function () {
+            setCookieConsentValue('rejected');
+            banner.hidden = true;
+        });
+    }
+
+    initCookieBanner();
+
+    // Sidebar desktop/móvil y cookie de estado (colapsado/no colapsado).
     var sidebar = document.getElementById('appSidebar');
     var toggle = document.getElementById('sidebarToggle');
     var mobileToggle = document.getElementById('sidebarMobileToggle');
@@ -9,6 +76,9 @@
     var collapseCookieMaxAge = 365 * 24 * 60 * 60;
 
     function setSidebarCollapseCookie(collapsed) {
+        if (!hasFunctionalConsent()) {
+            return;
+        }
         document.cookie = collapseCookieName + '=' + (collapsed ? '1' : '0') +
             '; path=/; max-age=' + collapseCookieMaxAge + '; SameSite=Lax';
     }
@@ -30,6 +100,7 @@
         });
     }
 
+    // Notificaciones: guardamos el estado leído en localStorage por usuario.
     var AVISOS_LEIDOS_PREFIX = 'mipedido_avisos_vistos_';
 
     function avisosLeidosKey(uid) {
@@ -37,6 +108,9 @@
     }
 
     function getAvisosLeidos(uid) {
+        if (!hasFunctionalConsent()) {
+            return [];
+        }
         try {
             var raw = localStorage.getItem(avisosLeidosKey(uid));
             var arr = raw ? JSON.parse(raw) : [];
@@ -47,6 +121,9 @@
     }
 
     function saveAvisosLeidos(uid, arr) {
+        if (!hasFunctionalConsent()) {
+            return;
+        }
         try {
             localStorage.setItem(avisosLeidosKey(uid), JSON.stringify(arr));
         } catch (ignore) { /* cuota llena o modo privado */ }
@@ -127,6 +204,7 @@
 
     initNotificacionesCabecera();
 
+    // Confirmaciones comunes de acciones sensibles en formularios/botones.
     document.querySelectorAll('.js-confirm-delete').forEach(function (el) {
         function validarConfirmacion(e) {
             var msg = el.getAttribute('data-confirm-message') || '¿Eliminar este registro?';

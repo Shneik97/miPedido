@@ -5,8 +5,14 @@ require_once __DIR__ . '/../models/Pedido.php';
 require_once __DIR__ . '/../models/Cliente.php';
 require_once __DIR__ . '/../models/Producto.php';
 
+/**
+ * Gestión de pedidos y facturación básica.
+ */
 class PedidoController {
 
+    /**
+     * Requiere sesión válida.
+     */
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
@@ -31,6 +37,9 @@ class PedidoController {
         require __DIR__ . '/../views/pedidos/create.php';
     }
 
+    /**
+     * Crea pedido con una línea de detalle y control de stock.
+     */
     public function store(): void {
         $this->requireAuth();
         if (!csrfIsValidRequest()) {
@@ -70,6 +79,9 @@ class PedidoController {
         exit;
     }
 
+    /**
+     * Elimina pedido pendiente (solo admin, POST + CSRF).
+     */
     public function delete(string $id): void {
         $this->requireAuth();
         checkRole('admin');

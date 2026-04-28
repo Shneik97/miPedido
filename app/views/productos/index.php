@@ -1,4 +1,5 @@
 <?php
+// Listado de productos con stock/precio y acciones según rol.
 $pageTitle = 'Productos';
 $currentNav = 'productos';
 ob_start();

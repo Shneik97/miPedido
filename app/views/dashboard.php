@@ -1,4 +1,5 @@
 <?php
+// Vista principal del panel: métricas rápidas, ventas y estado de pedidos.
 $pageTitle = 'Dashboard';
 $currentNav = 'dashboard';
 ob_start();

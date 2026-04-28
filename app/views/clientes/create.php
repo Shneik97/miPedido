@@ -1,4 +1,5 @@
 <?php
+// Formulario para crear un cliente nuevo.
 $pageTitle = 'Nuevo cliente';
 $currentNav = 'clientes';
 ob_start();

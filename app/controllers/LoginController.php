@@ -3,8 +3,17 @@ require_once __DIR__ . '/../helpers/auth_helper.php';
 require_once __DIR__ . '/../helpers/preferencias_ui_helper.php';
 require_once __DIR__ . '/../models/Usuario.php';
 
+/**
+ * Controlador de autenticación:
+ * - login local
+ * - registro local
+ * - login federado con Google/Auth0
+ */
 class LoginController
 {
+    /**
+     * Muestra login o procesa POST de acceso.
+     */
     public function login(): void
     {
         authEnsureSession();
@@ -21,6 +30,9 @@ class LoginController
         require __DIR__ . '/../views/register.php';
     }
 
+    /**
+     * Alta de usuario local (rol empleado por defecto).
+     */
     public function registerStore(): void
     {
         authEnsureSession();
@@ -69,6 +81,9 @@ class LoginController
         exit;
     }
 
+    /**
+     * Inicia el flujo OAuth contra Auth0/Google.
+     */
     public function authGoogleStart(): void
     {
         authEnsureSession();

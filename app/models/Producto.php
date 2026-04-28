@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../config/database.php';
 
+/**
+ * Modelo de productos: catálogo y stock.
+ */
 class Producto {
     private $conn;
     private $table = 'productos';
@@ -10,6 +13,9 @@ class Producto {
         $this->conn = $database->connect();
     }
 
+    /**
+     * Lista productos ordenados por nombre.
+     */
     public function getAll() {
         $sql = 'SELECT * FROM ' . $this->table . ' ORDER BY nombre ASC';
         $stmt = $this->conn->prepare($sql);
@@ -24,6 +30,9 @@ class Producto {
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Inserta un producto nuevo.
+     */
     public function create(array $data) {
         $sql = 'INSERT INTO ' . $this->table . ' (nombre, descripcion, precio, stock)
                 VALUES (:nombre, :descripcion, :precio, :stock)';
@@ -36,6 +45,9 @@ class Producto {
         ]);
     }
 
+    /**
+     * Busca un producto por id.
+     */
     public function getById($id) {
         $sql = 'SELECT * FROM ' . $this->table . ' WHERE id = :id';
         $stmt = $this->conn->prepare($sql);
@@ -43,6 +55,9 @@ class Producto {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Actualiza los datos de un producto.
+     */
     public function update($id, array $data) {
         $sql = 'UPDATE ' . $this->table . '
                 SET nombre = :nombre,
@@ -60,6 +75,9 @@ class Producto {
         ]);
     }
 
+    /**
+     * Borra un producto por id.
+     */
     public function delete($id) {
         $sql = 'DELETE FROM ' . $this->table . ' WHERE id = :id';
         $stmt = $this->conn->prepare($sql);

@@ -1,4 +1,5 @@
 <?php
+// Listado de clientes con acciones CRUD visibles según rol.
 $pageTitle = 'Clientes';
 $currentNav = 'clientes';
 ob_start();

@@ -1,4 +1,5 @@
 <?php
+// Preferencias de interfaz para el usuario actual.
 $pageTitle = 'Mi entorno';
 $currentNav = 'mi_entorno';
 $err = $_GET['err'] ?? '';

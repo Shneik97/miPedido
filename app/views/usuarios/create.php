@@ -1,4 +1,5 @@
 <?php
+// Formulario de alta de usuario y rol.
 $pageTitle = 'Nuevo usuario';
 $currentNav = 'usuarios';
 $err = $_GET['error'] ?? '';

@@ -1,4 +1,5 @@
 <?php
+// Panel de facturación con filtros por estado y mes.
 $pageTitle = 'Facturación';
 $currentNav = 'facturacion';
 ob_start();

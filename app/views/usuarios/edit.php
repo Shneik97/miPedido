@@ -1,4 +1,5 @@
 <?php
+// Edición de datos del usuario y sus permisos.
 $pageTitle = 'Editar usuario';
 $currentNav = 'usuarios';
 $err = $_GET['error'] ?? '';

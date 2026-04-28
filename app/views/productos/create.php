@@ -1,4 +1,5 @@
 <?php
+// Formulario para dar de alta un producto en el catálogo.
 $pageTitle = 'Nuevo producto';
 $currentNav = 'productos';
 ob_start();

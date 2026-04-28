@@ -1,4 +1,5 @@
 <?php
+// Formulario para registrar un pedido nuevo.
 $pageTitle = 'Nuevo pedido';
 $currentNav = 'pedidos';
 ob_start();

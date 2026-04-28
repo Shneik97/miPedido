@@ -1,4 +1,5 @@
 <?php
+// Registro público de cuenta local (rol empleado).
 $pageTitle = 'Crear cuenta';
 $showSidebar = false;
 $currentNav = '';

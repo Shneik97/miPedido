@@ -1,4 +1,5 @@
 <?php
+// Formulario para editar datos de un cliente existente.
 $pageTitle = 'Editar cliente';
 $currentNav = 'clientes';
 ob_start();

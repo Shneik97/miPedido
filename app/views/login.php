@@ -1,4 +1,5 @@
 <?php
+// Pantalla de acceso: login local y enlaces de registro/inicio con Google.
 $pageTitle = 'Iniciar sesión';
 $showSidebar = false;
 $currentNav = '';
@@ -45,8 +46,6 @@ ob_start();
                 </form>
                 <div class="text-center mt-3">
                     <a href="index.php?page=register" class="small text-decoration-none">Crear cuenta nueva</a>
-                    <span class="mx-1 text-muted">·</span>
-                    <a href="index.php?page=home" class="small text-decoration-none">Ver presentación</a>
                 </div>
             </div>
         </div>

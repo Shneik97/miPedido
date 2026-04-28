@@ -2,8 +2,14 @@
 require_once __DIR__ . '/../helpers/auth_helper.php';
 require_once __DIR__ . '/../models/Producto.php';
 
+/**
+ * CRUD de productos con validación básica de datos.
+ */
 class ProductoController {
 
+    /**
+     * Requiere usuario autenticado para entrar al módulo.
+     */
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
@@ -75,6 +81,9 @@ class ProductoController {
         exit;
     }
 
+    /**
+     * Convierte y limpia los campos del formulario de producto.
+     */
     private function normalizeProductoPost(array $post): array {
         return [
             'nombre' => trim($post['nombre'] ?? ''),

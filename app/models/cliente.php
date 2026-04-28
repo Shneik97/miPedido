@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/../../config/database.php';
 
+/**
+ * Modelo de clientes: operaciones básicas CRUD.
+ */
 class Cliente {
     private $conn;
     private $table = "clientes";
@@ -10,6 +13,9 @@ class Cliente {
         $this->conn = $database->connect();
     }
 
+    /**
+     * Devuelve todos los clientes para el listado.
+     */
     public function getAll() {
         $sql = "SELECT * FROM " . $this->table;
         $stmt = $this->conn->prepare($sql);
@@ -24,6 +30,9 @@ class Cliente {
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Inserta un cliente nuevo.
+     */
     public function create($data) {
         $sql = "INSERT INTO " . $this->table . " (nombre, telefono, email, direccion) 
                 VALUES (:nombre, :telefono, :email, :direccion)";
@@ -36,6 +45,9 @@ class Cliente {
         ]);
     }
 
+    /**
+     * Devuelve un cliente por su id.
+     */
     public function getById($id) {
         $sql = "SELECT * FROM " . $this->table . " WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
@@ -43,6 +55,9 @@ class Cliente {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Actualiza datos de un cliente existente.
+     */
     public function update($id, $data) {
         $sql = "UPDATE " . $this->table . " 
                 SET nombre = :nombre,
@@ -60,6 +75,9 @@ class Cliente {
         ]);
     }
 
+    /**
+     * Elimina cliente por id.
+     */
     public function delete($id) {
         $sql = "DELETE FROM " . $this->table . " WHERE id = :id";
         $stmt = $this->conn->prepare($sql);

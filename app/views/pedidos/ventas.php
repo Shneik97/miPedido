@@ -1,4 +1,5 @@
 <?php
+// Resumen mensual de ventas con detalle del mes seleccionado.
 $pageTitle = 'Ventas';
 $currentNav = 'ventas';
 ob_start();

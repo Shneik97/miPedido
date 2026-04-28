@@ -11,219 +11,120 @@ require_once '../app/controllers/CalendarioController.php';
 require_once '../app/controllers/MiEntornoController.php';
 require_once '../app/controllers/LoginController.php';
 
-$page = $_GET['page'] ?? 'home';
-
-switch ($page) {
-    case 'dashboard':
-        (new DashboardController())->index();
-        break;
-
-    case 'home':
-        require_once '../app/views/home.php';
-        break;
-
-    case 'login':
-        (new LoginController())->login();
-        break;
-
-    case 'register':
-        (new LoginController())->register();
-        break;
-
-    case 'register_store':
-        (new LoginController())->registerStore();
-        break;
-
-    case 'auth_google_start':
-        (new LoginController())->authGoogleStart();
-        break;
-
-    case 'auth_google_callback':
-        (new LoginController())->authGoogleCallback();
-        break;
-
-    case '403':
-        require_once '../app/views/403.php';
-        break;
-
-    case 'clientes':
-        $controller = new ClienteController();
-        $controller->index();
-        break;
-
-    case 'clientes_create':
-        $controller = new ClienteController();
-        $controller->create();
-        break;
-
-    case 'clientes_store':
-        $controller = new ClienteController();
-        $controller->store();
-        break;
-
-    case 'clientes_edit':
-        $controller = new ClienteController();
-        $controller->edit();
-        break;
-
-    case 'clientes_update':
-        $controller = new ClienteController();
-        $controller->update();
-        break;
-
-    case 'clientes_delete':
-        if (isset($_GET['id'])) {
-            $controller = new ClienteController();
-            $controller->delete($_GET['id']);
-        }
-        break;
-
-    case 'productos':
-        $controller = new ProductoController();
-        $controller->index();
-        break;
-
-    case 'productos_create':
-        $controller = new ProductoController();
-        $controller->create();
-        break;
-
-    case 'productos_store':
-        $controller = new ProductoController();
-        $controller->store();
-        break;
-
-    case 'productos_edit':
-        $controller = new ProductoController();
-        $controller->edit();
-        break;
-
-    case 'productos_update':
-        $controller = new ProductoController();
-        $controller->update();
-        break;
-
-    case 'productos_delete':
-        if (isset($_GET['id'])) {
-            $controller = new ProductoController();
-            $controller->delete($_GET['id']);
-        }
-        break;
-
-    case 'pedidos':
-        (new PedidoController())->index();
-        break;
-
-    case 'pedidos_create':
-        (new PedidoController())->create();
-        break;
-
-    case 'pedidos_store':
-        (new PedidoController())->store();
-        break;
-
-    case 'pedidos_delete':
-        if (isset($_GET['id'])) {
-            (new PedidoController())->delete($_GET['id']);
-        }
-        break;
-
-    case 'pedido_factura':
-        (new PedidoController())->factura();
-        break;
-
-    case 'pedido_factura_guardar':
-        (new PedidoController())->facturaGuardar();
-        break;
-
-    case 'pedidos_marcar_realizado':
-        (new PedidoController())->marcarRealizado();
-        break;
-
-    case 'pedidos_historial':
-        (new PedidoController())->historial();
-        break;
-
-    case 'ventas':
-        (new PedidoController())->ventas();
-        break;
-
-    case 'facturacion':
-        (new PedidoController())->facturacion();
-        break;
-
-    case 'tareas':
-        (new TareaController())->index();
-        break;
-
-    case 'tareas_create':
-        (new TareaController())->create();
-        break;
-
-    case 'tareas_store':
-        (new TareaController())->store();
-        break;
-
-    case 'tareas_estado':
-        (new TareaController())->cambiarEstado();
-        break;
-
-    case 'calendario':
-        (new CalendarioController())->index();
-        break;
-
-    case 'calendario_personal_store':
-        (new CalendarioController())->storePersonal();
-        break;
-
-    case 'usuarios':
-        (new UsuarioController())->index();
-        break;
-
-    case 'usuarios_create':
-        (new UsuarioController())->create();
-        break;
-
-    case 'usuarios_store':
-        (new UsuarioController())->store();
-        break;
-
-    case 'usuarios_edit':
-        (new UsuarioController())->edit();
-        break;
-
-    case 'usuarios_update':
-        (new UsuarioController())->update();
-        break;
-
-    case 'usuarios_delete':
-        if (isset($_GET['id'])) {
-            (new UsuarioController())->delete((string) $_GET['id']);
-        }
-        break;
-
-    case 'config':
-        (new ConfigController())->index();
-        break;
-
-    case 'mi_entorno':
-        (new MiEntornoController())->index();
-        break;
-
-    case 'mi_entorno_update':
-        (new MiEntornoController())->update();
-        break;
-
-    case 'logout':
-        authEnsureSession();
-        $_SESSION = [];
-        session_destroy();
-        require_once __DIR__ . '/../app/helpers/preferencias_ui_helper.php';
-        mipedido_sidebar_clear_collapse_cookie();
-        header('Location: index.php?page=home');
-        break;
-
-    default:
-        (new LoginController())->login();
-        break;
+/**
+ * Ejecuta una acción de controlador sin parámetros.
+ */
+function dispatchController(string $controllerClass, string $method): void
+{
+    (new $controllerClass())->$method();
 }
+
+/**
+ * Ejecuta una acción que requiere "id" en query string.
+ * Si no existe, no se ejecuta nada para mantener el comportamiento actual.
+ */
+function dispatchControllerWithId(string $controllerClass, string $method): void
+{
+    if (!isset($_GET['id'])) {
+        return;
+    }
+    (new $controllerClass())->$method((string) $_GET['id']);
+}
+
+/**
+ * Cierra sesión y limpia la preferencia de sidebar colapsado.
+ */
+function dispatchLogout(): void
+{
+    authEnsureSession();
+    $_SESSION = [];
+    session_destroy();
+    require_once __DIR__ . '/../app/helpers/preferencias_ui_helper.php';
+    mipedido_sidebar_clear_collapse_cookie();
+    header('Location: index.php?page=login');
+}
+
+// Página solicitada por query string. Si no viene, se muestra la home pública.
+$page = (string) ($_GET['page'] ?? 'home');
+
+// Rutas que solo renderizan una vista.
+$viewRoutes = [
+    'home' => '../app/views/home.php',
+    '403' => '../app/views/403.php',
+];
+
+// Rutas de controlador sin parámetros de entrada por URL.
+$controllerRoutes = [
+    'dashboard' => [DashboardController::class, 'index'],
+    'login' => [LoginController::class, 'login'],
+    'register' => [LoginController::class, 'register'],
+    'register_store' => [LoginController::class, 'registerStore'],
+    'auth_google_start' => [LoginController::class, 'authGoogleStart'],
+    'auth_google_callback' => [LoginController::class, 'authGoogleCallback'],
+    'clientes' => [ClienteController::class, 'index'],
+    'clientes_create' => [ClienteController::class, 'create'],
+    'clientes_store' => [ClienteController::class, 'store'],
+    'clientes_edit' => [ClienteController::class, 'edit'],
+    'clientes_update' => [ClienteController::class, 'update'],
+    'productos' => [ProductoController::class, 'index'],
+    'productos_create' => [ProductoController::class, 'create'],
+    'productos_store' => [ProductoController::class, 'store'],
+    'productos_edit' => [ProductoController::class, 'edit'],
+    'productos_update' => [ProductoController::class, 'update'],
+    'pedidos' => [PedidoController::class, 'index'],
+    'pedidos_create' => [PedidoController::class, 'create'],
+    'pedidos_store' => [PedidoController::class, 'store'],
+    'pedido_factura' => [PedidoController::class, 'factura'],
+    'pedido_factura_guardar' => [PedidoController::class, 'facturaGuardar'],
+    'pedidos_marcar_realizado' => [PedidoController::class, 'marcarRealizado'],
+    'pedidos_historial' => [PedidoController::class, 'historial'],
+    'ventas' => [PedidoController::class, 'ventas'],
+    'facturacion' => [PedidoController::class, 'facturacion'],
+    'tareas' => [TareaController::class, 'index'],
+    'tareas_create' => [TareaController::class, 'create'],
+    'tareas_store' => [TareaController::class, 'store'],
+    'tareas_estado' => [TareaController::class, 'cambiarEstado'],
+    'calendario' => [CalendarioController::class, 'index'],
+    'calendario_personal_store' => [CalendarioController::class, 'storePersonal'],
+    'usuarios' => [UsuarioController::class, 'index'],
+    'usuarios_create' => [UsuarioController::class, 'create'],
+    'usuarios_store' => [UsuarioController::class, 'store'],
+    'usuarios_edit' => [UsuarioController::class, 'edit'],
+    'usuarios_update' => [UsuarioController::class, 'update'],
+    'config' => [ConfigController::class, 'index'],
+    'mi_entorno' => [MiEntornoController::class, 'index'],
+    'mi_entorno_update' => [MiEntornoController::class, 'update'],
+];
+
+// Rutas que exigen id por query string.
+$idRoutes = [
+    'clientes_delete' => [ClienteController::class, 'delete'],
+    'productos_delete' => [ProductoController::class, 'delete'],
+    'pedidos_delete' => [PedidoController::class, 'delete'],
+    'usuarios_delete' => [UsuarioController::class, 'delete'],
+];
+
+if (isset($viewRoutes[$page])) {
+    require_once $viewRoutes[$page];
+    return;
+}
+
+if ($page === 'logout') {
+    dispatchLogout();
+    return;
+}
+
+if (isset($controllerRoutes[$page])) {
+    [$controllerClass, $method] = $controllerRoutes[$page];
+    dispatchController($controllerClass, $method);
+    return;
+}
+
+if (isset($idRoutes[$page])) {
+    [$controllerClass, $method] = $idRoutes[$page];
+    dispatchControllerWithId($controllerClass, $method);
+    return;
+}
+
+// Fallback histórico: si la ruta no existe, se muestra login.
+dispatchController(LoginController::class, 'login');

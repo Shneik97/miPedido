@@ -1,4 +1,5 @@
 <?php
+// Administración de usuarios del sistema (solo rol admin).
 $pageTitle = 'Usuarios';
 $currentNav = 'usuarios';
 $ok = $_GET['ok'] ?? '';

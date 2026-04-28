@@ -2,6 +2,11 @@
 require_once __DIR__ . '/../helpers/auth_helper.php';
 require_once __DIR__ . '/../models/Cliente.php';
 
+/**
+ * CRUD de clientes.
+ * - Admin: alta, edición y borrado.
+ * - Empleado: solo listado.
+ */
 class ClienteController {
 
     /**
@@ -23,6 +28,9 @@ class ClienteController {
         require __DIR__ . '/../views/clientes/index.php';
     }
 
+    /**
+     * Muestra formulario de alta.
+     */
     public function create() {
         $this->requireAuth();
         checkRole('admin');
@@ -70,6 +78,9 @@ class ClienteController {
         exit;
     }
 
+    /**
+     * Elimina un cliente por id.
+     */
     public function delete($id) {
         $this->requireAuth();
         checkRole('admin');

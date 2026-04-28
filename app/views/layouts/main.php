@@ -2,18 +2,24 @@
 require_once __DIR__ . '/../../helpers/auth_helper.php';
 require_once __DIR__ . '/../../helpers/nav_helper.php';
 require_once __DIR__ . '/../../helpers/preferencias_ui_helper.php';
+
+// Variables base del layout compartido.
 authEnsureSession();
 $isAdmin = isAdmin();
 $pageTitle = $pageTitle ?? 'ERP miPedido';
 $showSidebar = $showSidebar ?? true;
 $currentNav = $currentNav ?? '';
 $usuarioNombre = $_SESSION['usuario']['nombre'] ?? '';
+
+// Datos de navegación (badge de tareas + notificaciones de cabecera).
 $navTareasPendientes = 0;
 $navCabeceraNotifs = [];
 if ($showSidebar && isset($_SESSION['usuario']['id'])) {
     $navTareasPendientes = contarTareasPendientesNav((int) $_SESSION['usuario']['id'], $isAdmin);
     $navCabeceraNotifs = notificacionesCabecera((int) $_SESSION['usuario']['id'], $isAdmin);
 }
+
+// Preferencias visuales del usuario (tema, color, posición/collapse de sidebar).
 $prefsUi = preferenciasUiDefaults();
 if ($showSidebar && isset($_SESSION['usuario'])) {
     $prefsUi = preferenciasUiNormalize($_SESSION['usuario']['preferencias_ui'] ?? null);
@@ -55,6 +61,35 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
         body {
             min-height: 100vh;
             background: var(--content-bg);
+        }
+        .cookie-banner {
+            position: fixed;
+            left: 1rem;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 2000;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+            padding: 0.9rem 1rem;
+        }
+        .cookie-banner[hidden] {
+            display: none !important;
+        }
+        .cookie-banner__title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        .cookie-banner__text {
+            color: #475569;
+            font-size: 0.88rem;
+            margin-bottom: 0.75rem;
+        }
+        .cookie-banner__actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
         .app-sidebar {
             position: fixed;
@@ -469,8 +504,21 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
             <button type="button" class="btn btn-outline-secondary btn-sm d-lg-none" id="sidebarMobileToggle" title="Menú" aria-label="Abrir menú">
                 <i class="fa-solid fa-bars"></i>
             </button>
-            <?php endif; ?>
             <span class="fw-semibold text-dark">ERP miPedido</span>
+            <?php elseif (!empty($publicTopButtons)): ?>
+            <div class="fw-semibold text-dark d-flex align-items-center gap-2">
+                <i class="fa-solid fa-cubes text-primary"></i>
+                <span>miPedido</span>
+            </div>
+            <nav class="d-none d-md-flex align-items-center gap-3 ms-2">
+                <a href="#modulos" class="small text-decoration-none text-secondary">Módulos</a>
+                <a href="#precios" class="small text-decoration-none text-secondary">Precios orientativos</a>
+                <a href="#acerca" class="small text-decoration-none text-secondary">Acerca de</a>
+                <a href="#confianza" class="small text-decoration-none text-secondary">Confianza</a>
+            </nav>
+            <?php else: ?>
+            <a href="index.php?page=home" class="fw-semibold text-dark text-decoration-none">ERP miPedido</a>
+            <?php endif; ?>
         </div>
         <?php if ($showSidebar && $usuarioNombre !== ''): ?>
         <?php
@@ -519,8 +567,11 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
                 <span><?= htmlspecialchars($usuarioNombre) ?></span>
             </div>
         </div>
-        <?php elseif (!$showSidebar): ?>
-        <span class="text-muted small">Acceso al sistema</span>
+        <?php elseif (!$showSidebar && !empty($publicTopButtons)): ?>
+        <div class="d-flex gap-2">
+            <a href="index.php?page=login" class="btn btn-outline-primary btn-sm">Iniciar sesión</a>
+            <a href="index.php?page=register" class="btn btn-primary btn-sm">Crear cuenta</a>
+        </div>
         <?php endif; ?>
     </header>
 
@@ -530,6 +581,18 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
         </div>
     </div>
 </div>
+
+<section id="cookieBanner" class="cookie-banner" hidden aria-label="Aviso de cookies">
+    <div class="cookie-banner__title">Uso de cookies en miPedido</div>
+    <div class="cookie-banner__text">
+        Este proyecto usa cookies necesarias de sesión y, si lo aceptas, una cookie funcional para recordar el estado del menú lateral.
+        También usa almacenamiento local para marcar avisos leídos. En este TFG es solo una demostración orientativa.
+    </div>
+    <div class="cookie-banner__actions">
+        <button type="button" id="cookieAcceptBtn" class="btn btn-primary btn-sm">Aceptar cookies funcionales</button>
+        <button type="button" id="cookieRejectBtn" class="btn btn-outline-secondary btn-sm">Solo necesarias</button>
+    </div>
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/main.js"></script>

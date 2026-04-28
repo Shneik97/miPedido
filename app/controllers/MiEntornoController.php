@@ -4,8 +4,14 @@ require_once __DIR__ . '/../helpers/auth_helper.php';
 require_once __DIR__ . '/../helpers/preferencias_ui_helper.php';
 require_once __DIR__ . '/../models/Usuario.php';
 
+/**
+ * Gestiona la pantalla "Mi entorno" para preferencias visuales del usuario.
+ */
 class MiEntornoController {
 
+    /**
+     * Muestra el formulario con las preferencias actuales.
+     */
     public function index(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
@@ -20,6 +26,9 @@ class MiEntornoController {
         require __DIR__ . '/../views/mi_entorno/index.php';
     }
 
+    /**
+     * Guarda preferencias UI en sesión y base de datos.
+     */
     public function update(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
