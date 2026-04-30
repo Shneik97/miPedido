@@ -331,6 +331,10 @@ Los **scripts de migración** son archivos de texto con instrucciones para la ba
 | `migrate_fase6_preferencias_ui.sql` | Guarda las opciones de **Mi entorno** por usuario. |
 | `migrate_fase7_seguridad_login_csrf_sesion.sql` | Añade bloqueo de login escalado y base de seguridad para esta fase. |
 | `migrate_fase8_permisos_usuarios.sql` | Crea catálogo de permisos y asignaciones por usuario. |
+| `migrate_fase9_onboarding_admin.sql` | Añade tutorial inicial para admin (por versión) y prepara clave de espacio de trabajo. |
+| `migrate_fase10_workspace_aislamiento.sql` | Aísla datos por workspace para que cada admin tenga entorno propio y empleados hereden ese entorno. |
+| `migrate_fase11_verificacion_correo.sql` | Añade estado simple de verificación de correo (simulación para demo TFG). |
+| `migrate_fase12_planes_usuario.sql` | Añade selección de plan simulada para admin y control de cambio mensual. |
 
 ---
 
@@ -557,6 +561,200 @@ Para cerrar incongruencias funcionales detectadas durante pruebas:
 4. En facturación, comprobar que **Editar** abre en nueva pestaña.  
 5. En pedidos, intentar borrar uno realizado: debe estar bloqueado.  
 6. Borrar uno pendiente y verificar que el stock vuelve a su valor correcto.
+
+---
+
+## 21. Onboarding inicial para administradores (fase 9)
+
+### 21.1 Qué problema resuelve
+
+Cuando entra un administrador nuevo, puede no saber por dónde empezar en el panel.  
+Se añadió una guía corta, visual y no invasiva para explicar las zonas principales del dashboard.
+
+### 21.2 Cómo funciona
+
+- El sistema guarda un campo `onboarding_version` en `usuarios`.
+- Si un admin tiene `onboarding_version = 0`, al entrar al dashboard se muestran “globos” guiados (paso a paso).
+- Al pulsar **Finalizar**, se guarda la versión completada (`1`) y la guía no vuelve a aparecer.
+- Al usar versión en vez de sí/no, en el futuro se puede lanzar otro mini-tour (v2, v3...) sin romper datos antiguos.
+
+### 21.3 Qué se enseña en la guía
+
+1. Tarjetas KPI principales.  
+2. Panel de ventas por mes.  
+3. Ranking de productos más vendidos.
+
+### 21.4 SQL útil para pruebas
+
+Si quieres que admins existentes vuelvan a ver la guía:
+
+`UPDATE usuarios SET onboarding_version = 0 WHERE rol = 'admin';`
+
+### 21.5 Sobre “entorno limpio” en cuentas nuevas
+
+Se añadió también `workspace_key` a `usuarios` como base para una futura separación total de datos por cuenta.  
+En esta fase no se activó aislamiento completo en todas las tablas para evitar una migración grande e invasiva justo antes de defensa.
+
+---
+
+## 22. Entorno limpio por cuenta admin (fase 10)
+
+### 22.1 Regla funcional aplicada
+
+- Un **admin nuevo** entra con entorno limpio (su propio workspace).
+- Un **empleado** queda ligado al workspace de su admin y por eso ve esos mismos datos.
+- Un admin de otro workspace no ve datos ajenos.
+
+### 22.2 Qué se filtró por workspace
+
+- Clientes
+- Productos
+- Pedidos (incluye facturación, historial y estados)
+- Ventas
+- Tareas y calendario
+- KPIs de dashboard y campana de avisos
+
+### 22.3 Migración recomendada
+
+Ejecutar: `config/migrate_fase10_workspace_aislamiento.sql`
+
+La migración:
+- añade `workspace_key` en tablas de negocio,
+- hace backfill de datos antiguos a un workspace legado para no perder continuidad.
+
+---
+
+## 23. Verificación de correo (fase 11, simulación junior)
+
+### 23.1 Objetivo práctico
+
+Se pidió mostrar en `Configuración` un estado de cuenta verificada, sin implementar un sistema complejo de correo real.
+
+### 23.2 Qué se implementó
+
+- En la tarjeta de cuenta, junto al campo `Rol`, aparece:
+  - botón **Verificar correo** si el estado es pendiente,
+  - etiqueta **Cuenta Verificada** cuando ya se marcó.
+- Solo se guarda un flag simple en base de datos (`email_verificado`).
+- No hay OTP ni envío real de correo en esta fase.
+
+### 23.3 Por qué así (enfoque junior)
+
+- Es más fácil de explicar y mantener para una memoria de TFG de nivel inicial.
+- Cumple la experiencia visual/funcional pedida por el tutor o cliente.
+- Evita dependencias externas (SMTP, API de correo) que complican la demo.
+
+---
+
+## 24. Errores reales e inconvenientes encontrados (y solución)
+
+Esta sección resume problemas que ocurrieron durante el desarrollo real, útil para justificar trabajo técnico en la defensa.
+
+### 24.1 Error SQL 1064 en migraciones
+
+**Síntoma:**  
+MySQL Workbench devolvía error de sintaxis con `ADD COLUMN IF NOT EXISTS`.
+
+**Causa:**  
+La versión/configuración de MySQL del entorno no soportaba ese patrón en todos los casos.
+
+**Solución aplicada:**  
+Migraciones reescritas con comprobación previa en `INFORMATION_SCHEMA.COLUMNS` y ejecución con `PREPARE/EXECUTE`.
+
+### 24.2 Error SQL 1054 (`Unknown column 'workspace_key'`)
+
+**Síntoma:**  
+Fallo al cargar dashboard o login social por columna inexistente.
+
+**Causa:**  
+Código actualizado antes de ejecutar migraciones nuevas.
+
+**Solución aplicada:**  
+Ejecutar migraciones fase 9 y fase 10, recargar sesión y volver a probar.
+
+### 24.3 Error Auth0: “No se recibió token”
+
+**Causa 1:** dominio Auth0 mal escrito.  
+**Causa 2:** extensiones `curl` y `openssl` desactivadas en PHP.
+
+**Solución aplicada:**  
+Corregir `AUTH0_DOMAIN` y activar extensiones en `php.ini`.
+
+### 24.4 Problema visual en globo de onboarding
+
+**Síntoma:**  
+El globo quedaba cortado en pantallas con poco alto.
+
+**Solución aplicada:**  
+Reposicionamiento dinámico del globo (arriba/abajo/lados) y límites por viewport.
+
+### 24.5 Decisión de simplificación de verificación de correo
+
+Se inició una versión avanzada (OTP), pero se descartó para mantener coherencia con el enfoque junior del proyecto.  
+Resultado final: verificación simulada, estable y fácil de explicar.
+
+### 24.6 Ajustes de estilo para mantener nivel junior
+
+- Se evitó añadir dependencias de correo externas para no complicar el despliegue.
+- Se priorizaron validaciones directas y flujo sencillo en pantallas clave.
+- Se mantuvo código funcional ya probado, evitando refactors grandes que podían romper la demo.
+- La complejidad "avanzada" se dejó documentada como evolución futura y no como requisito actual.
+
+---
+
+## 25. Seleccion de plan para admin (fase 12, simulacion junior)
+
+### 25.1 Objetivo
+
+Al crear una cuenta admin nueva, se añade un paso inicial para elegir plan (Basico, Profesional o Avanzado), alineado con la landing y enfocado a demo academica.
+
+### 25.2 Flujo funcional
+
+- Si el admin inicia sesion sin plan asignado, se redirige a `plan_select`.
+- La seleccion abre una mini-ventana/modal para completar datos mock.
+- Al confirmar, se guarda solo el plan elegido y fechas de control.
+- En `Configuracion`, el admin ve su plan y puede cambiarlo una vez cada 30 dias (simulacion).
+
+### 25.3 Recomendaciones de seguridad aplicadas
+
+- Se solicitan solo datos no sensibles de ejemplo:
+  - nombre y apellidos (demo),
+  - DNI simple (demo),
+  - email de facturacion,
+  - **ultimos 4 digitos** de tarjeta,
+  - caducidad.
+- No se guarda ni procesa tarjeta completa.
+- Mensaje visible y obligatorio en interfaz:
+  - **"simulacion academica, no se procesa ningun pago real"**.
+
+### 25.4 Campos tecnicos anadidos en `usuarios`
+
+- `plan_actual` (`basico`, `profesional`, `avanzado`)
+- `plan_elegido_at` (fecha de primera eleccion)
+- `plan_cambiado_at` (fecha del ultimo cambio para cooldown mensual)
+
+### 25.5 Justificacion nivel junior
+
+- Da realismo para defensa sin integrar pasarelas de pago reales.
+- Evita manejo de datos sensibles y reduce riesgo legal/tecnico.
+- Mantiene un flujo sencillo, demostrable y facil de explicar al tribunal.
+
+---
+
+## 26. Limpieza final de scripts SQL (orden y claridad)
+
+Para mantener el proyecto en nivel junior y facilitar la defensa, se dejó una estructura SQL más clara:
+
+- Archivo principal para instalación nueva:
+  - `config/database.sql`
+- Actualizaciones para bases antiguas:
+  - `config/migrate_fase4_...sql` hasta `config/migrate_fase12_...sql`
+- Guía rápida de uso:
+  - `config/README_SQL.md`
+
+También se retiraron scripts de parche antiguos que ya no forman parte del flujo normal de instalación, para evitar confusión.
+
+Resultado: menos ruido en la carpeta `config`, proceso más fácil de explicar y menor riesgo de ejecutar scripts equivocados.
 
 ---
 

@@ -65,12 +65,13 @@ ob_start();
                                         <i class="fa-solid fa-pen"></i>
                                     </a>
                                     <?php if ((int) $u['id'] !== $miUsuarioId): ?>
-                                    <a href="index.php?page=usuarios_delete&id=<?= (int) $u['id'] ?>"
-                                       class="btn btn-sm btn-outline-danger js-confirm-delete"
-                                       title="Eliminar"
-                                       data-confirm-message="¿Eliminar este usuario?">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </a>
+                                    <form method="post" action="index.php?page=usuarios_delete" class="d-inline js-confirm-delete" data-confirm-message="¿Eliminar este usuario?">
+                                        <?= csrfInput() ?>
+                                        <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
                                     <?php endif; ?>
                                 </td>
                             </tr>

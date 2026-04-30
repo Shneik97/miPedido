@@ -10,9 +10,16 @@ class CalendarioController {
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
+    }
+
+    /**
+     * Atajo para redirecciones (evita código repetido).
+     */
+    private function redirect(string $url): void {
+        header('Location: ' . $url);
+        exit;
     }
 
     public function index(): void {
@@ -33,11 +40,12 @@ class CalendarioController {
 
         $uid = (int) $_SESSION['usuario']['id'];
         $isAdmin = isAdmin();
+        $workspaceKey = currentWorkspaceKey();
 
         $tareaModel = new Tarea();
         $calendarioDbError = false;
         try {
-            $filas = $tareaModel->getForCalendarioMonth($year, $month, $uid, $isAdmin);
+            $filas = $tareaModel->getForCalendarioMonth($year, $month, $uid, $isAdmin, $workspaceKey);
         } catch (Throwable $e) {
             $filas = [];
             $calendarioDbError = true;
@@ -81,34 +89,30 @@ class CalendarioController {
     public function storePersonal(): void {
         $this->requireAuth();
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-            header('Location: index.php?page=calendario');
-            exit;
+            $this->redirect('index.php?page=calendario');
         }
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=calendario&error=csrf');
-            exit;
+            $this->redirect('index.php?page=calendario&error=csrf');
         }
         $titulo = trim((string) ($_POST['titulo'] ?? ''));
         $descripcion = trim((string) ($_POST['descripcion'] ?? ''));
         $fecha = trim((string) ($_POST['fecha'] ?? ''));
 
         if ($titulo === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
-            header('Location: index.php?page=calendario&error=personal');
-            exit;
+            $this->redirect('index.php?page=calendario&error=personal');
         }
 
         $uid = (int) $_SESSION['usuario']['id'];
+        $workspaceKey = currentWorkspaceKey();
         $fechaLimite = $fecha . ' 09:00:00';
 
         try {
-            (new Tarea())->create($titulo, $descripcion !== '' ? $descripcion : null, $uid, $uid, null, $fechaLimite, true);
+            (new Tarea())->create($titulo, $descripcion !== '' ? $descripcion : null, $uid, $uid, null, $fechaLimite, true, $workspaceKey);
         } catch (Throwable $e) {
-            header('Location: index.php?page=calendario&error=personal');
-            exit;
+            $this->redirect('index.php?page=calendario&error=personal');
         }
 
         $ym = substr($fecha, 0, 7);
-        header('Location: index.php?page=calendario&ym=' . rawurlencode($ym) . '&ok=personal');
-        exit;
+        $this->redirect('index.php?page=calendario&ym=' . rawurlencode($ym) . '&ok=personal');
     }
 }

@@ -2,6 +2,7 @@
 /**
  * Listado de tareas: el admin ve todas; el empleado solo las asignadas a su usuario.
  * Espera $isAdmin definido por TareaController::index().
+ * Nivel estudiante: cada fila permite cambiar estado rapido sin salir del listado.
  */
 $pageTitle = 'Tareas';
 $currentNav = 'tareas';
@@ -54,7 +55,9 @@ $estMap = [
                         <?php foreach ($tareas as $t): ?>
                             <?php
                             $estTarea = (string) ($t['estado'] ?? '');
-                            // Tras guardar: "En curso" → fila azul claro; "Hecha" → verde (permanente hasta que exista la fila).
+                            // Estilos visuales de ayuda:
+                            // - "en_curso" -> azul claro
+                            // - "hecha" -> verde
                             $claseFilaTarea = '';
                             if ($estTarea === 'hecha') {
                                 $claseFilaTarea = 'table-success';

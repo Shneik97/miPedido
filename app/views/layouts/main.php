@@ -4,22 +4,28 @@ require_once __DIR__ . '/../../helpers/nav_helper.php';
 require_once __DIR__ . '/../../helpers/preferencias_ui_helper.php';
 
 // Variables base del layout compartido.
+// Idea estudiante: este archivo es la "plantilla general" (header, sidebar, estilos y scripts globales).
 authEnsureSession();
 $isAdmin = isAdmin();
 $pageTitle = $pageTitle ?? 'ERP miPedido';
 $showSidebar = $showSidebar ?? true;
 $currentNav = $currentNav ?? '';
 $usuarioNombre = $_SESSION['usuario']['nombre'] ?? '';
+$usuarioRol = strtolower((string) ($_SESSION['usuario']['rol'] ?? ''));
+$usuarioRolLabel = $usuarioRol === 'admin' ? 'Admin' : 'Empleado';
 
 // Datos de navegación (badge de tareas + notificaciones de cabecera).
+// Se calculan aquí para que todas las vistas usen el mismo comportamiento.
 $navTareasPendientes = 0;
 $navCabeceraNotifs = [];
 if ($showSidebar && isset($_SESSION['usuario']['id'])) {
-    $navTareasPendientes = contarTareasPendientesNav((int) $_SESSION['usuario']['id'], $isAdmin);
-    $navCabeceraNotifs = notificacionesCabecera((int) $_SESSION['usuario']['id'], $isAdmin);
+    $wsNav = (string) ($_SESSION['usuario']['workspace_key'] ?? '');
+    $navTareasPendientes = contarTareasPendientesNav((int) $_SESSION['usuario']['id'], $isAdmin, $wsNav);
+    $navCabeceraNotifs = notificacionesCabecera((int) $_SESSION['usuario']['id'], $isAdmin, $wsNav);
 }
 
 // Preferencias visuales del usuario (tema, color, posición/collapse de sidebar).
+// Si no hay preferencias guardadas, se usan valores por defecto del helper.
 $prefsUi = preferenciasUiDefaults();
 if ($showSidebar && isset($_SESSION['usuario'])) {
     $prefsUi = preferenciasUiNormalize($_SESSION['usuario']['preferencias_ui'] ?? null);
@@ -50,387 +56,15 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/layout.css">
     <style>
+        /* Variables dinamicas del tema (cambian segun preferencias de usuario). */
         :root {
             --sidebar-w: 260px;
             --sidebar-collapsed-w: 72px;
             --content-bg: <?= htmlspecialchars($fondoTrabajoHex, ENT_QUOTES, 'UTF-8') ?>;
             --accent: <?= htmlspecialchars($accentPair[0], ENT_QUOTES, 'UTF-8') ?>;
             --accent-rgb: <?= htmlspecialchars($accentPair[1], ENT_QUOTES, 'UTF-8') ?>;
-        }
-        body {
-            min-height: 100vh;
-            background: var(--content-bg);
-        }
-        .cookie-banner {
-            position: fixed;
-            left: 1rem;
-            right: 1rem;
-            bottom: 1rem;
-            z-index: 2000;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.75rem;
-            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
-            padding: 0.9rem 1rem;
-        }
-        .cookie-banner[hidden] {
-            display: none !important;
-        }
-        .cookie-banner__title {
-            font-weight: 600;
-            margin-bottom: 0.3rem;
-        }
-        .cookie-banner__text {
-            color: #475569;
-            font-size: 0.88rem;
-            margin-bottom: 0.75rem;
-        }
-        .cookie-banner__actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        .app-sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1040;
-            width: var(--sidebar-w);
-            height: 100vh;
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 55%, #020617 100%);
-            box-shadow: 4px 0 24px rgba(15, 23, 42, 0.35);
-            transition: width 0.25s ease, transform 0.25s ease;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
-        }
-        .app-sidebar::-webkit-scrollbar { width: 8px; }
-        .app-sidebar::-webkit-scrollbar-track { background: transparent; }
-        .app-sidebar::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, 0.45);
-            border-radius: 999px;
-        }
-        .app-sidebar::-webkit-scrollbar-thumb:hover {
-            background: rgba(148, 163, 184, 0.65);
-        }
-        .app-sidebar.collapsed {
-            width: var(--sidebar-collapsed-w);
-        }
-        .app-sidebar.collapsed .nav-text,
-        .app-sidebar.collapsed .sidebar-brand span {
-            display: none;
-        }
-        .app-sidebar.collapsed .sidebar-brand {
-            justify-content: center;
-            padding-left: 0;
-            padding-right: 0;
-        }
-        /* Iconos centrados al colapsar */
-        .app-sidebar.collapsed .sidebar-nav .nav-link {
-            justify-content: center;
-            padding-left: 0.45rem;
-            padding-right: 0.45rem;
-        }
-        /* Tareas con glovo: expandido = icono · texto · número; colapsado = glovo esquina superior derecha del icono */
-        .nav-link--tareas-badge .nav-tareas-icon-wrap {
-            display: contents;
-        }
-        .nav-link--tareas-badge .nav-tareas-icon-wrap > i {
-            order: 1;
-        }
-        .nav-link--tareas-badge > .nav-text {
-            order: 2;
-        }
-        .nav-link--tareas-badge .nav-tareas-icon-wrap > .nav-tareas-glovo {
-            order: 3;
-            margin-left: 0.35rem;
-        }
-        .app-sidebar.collapsed .nav-link--tareas-badge .nav-tareas-icon-wrap {
-            display: inline-flex !important;
-            position: relative;
-            width: 1.45rem;
-            height: 1.45rem;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .app-sidebar.collapsed .nav-link--tareas-badge .nav-tareas-icon-wrap > i,
-        .app-sidebar.collapsed .nav-link--tareas-badge .nav-tareas-icon-wrap > .nav-tareas-glovo {
-            order: unset !important;
-        }
-        .app-sidebar.collapsed .nav-link--tareas-badge .nav-tareas-icon-wrap > .nav-tareas-glovo {
-            position: absolute;
-            top: -0.08rem;
-            right: -0.4rem;
-            left: auto;
-            margin: 0 !important;
-            padding: 0.12rem 0.38rem;
-            font-size: 0.6rem;
-            font-weight: 700;
-            line-height: 1;
-            min-width: 1.1rem;
-            text-align: center;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-            z-index: 2;
-            pointer-events: none;
-        }
-        .sidebar-brand {
-            padding: 1.25rem 1rem;
-            color: #f8fafc;
-            font-weight: 700;
-            font-size: 1.05rem;
-            letter-spacing: 0.02em;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .sidebar-brand i { color: var(--accent); }
-        .sidebar-nav {
-            padding-bottom: 0.5rem;
-            flex: 0 0 auto;
-        }
-        .sidebar-nav .nav-link {
-            color: #cbd5e1;
-            padding: 0.75rem 1.25rem;
-            margin: 0.15rem 0.5rem;
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            transition: background 0.15s, color 0.15s;
-        }
-        .nav-link--tareas-badge {
-            flex-wrap: nowrap;
-        }
-        .sidebar-nav .nav-link:hover {
-            background: rgba(148, 163, 184, 0.12);
-            color: #fff;
-        }
-        .sidebar-nav .nav-link.active {
-            background: rgba(var(--accent-rgb), 0.2);
-            color: var(--accent);
-        }
-        .sidebar-nav .nav-link i {
-            width: 1.25rem;
-            text-align: center;
-        }
-        .sidebar-footer {
-            margin-top: auto;
-            padding: 0.2rem 0.5rem 0.55rem;
-            border-top: 1px solid rgba(148, 163, 184, 0.14);
-        }
-        .sidebar-watermark {
-            display: block;
-            width: 100%;
-            text-align: center;
-            color: rgba(203, 213, 225, 0.24);
-            font-size: 0.68rem;
-            font-weight: 500;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            user-select: none;
-            pointer-events: none;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            margin-top: 0.55rem;
-            padding-bottom: 0.1rem;
-        }
-        .app-sidebar.collapsed .sidebar-watermark {
-            font-size: 0.6rem;
-            letter-spacing: 0.04em;
-            color: rgba(203, 213, 225, 0.2);
-            margin-top: 0.35rem;
-        }
-        .app-main {
-            box-sizing: border-box;
-            width: calc(100% - var(--sidebar-w));
-            margin-left: var(--sidebar-w);
-            min-height: 100vh;
-            min-width: 0;
-            transition: margin-left 0.25s ease, width 0.25s ease;
-        }
-        .app-sidebar.collapsed ~ .app-main {
-            width: calc(100% - var(--sidebar-collapsed-w));
-            margin-left: var(--sidebar-collapsed-w);
-        }
-        body.sidebar-derecha .app-sidebar {
-            left: auto;
-            right: 0;
-            box-shadow: -4px 0 24px rgba(15, 23, 42, 0.35);
-        }
-        body.sidebar-derecha .app-main {
-            margin-left: 0;
-            margin-right: var(--sidebar-w);
-            width: calc(100% - var(--sidebar-w));
-            transition: margin-right 0.25s ease, margin-left 0.25s ease, width 0.25s ease;
-        }
-        body.sidebar-derecha .app-sidebar.collapsed ~ .app-main {
-            margin-left: 0;
-            margin-right: var(--sidebar-collapsed-w);
-            width: calc(100% - var(--sidebar-collapsed-w));
-        }
-        body.tema-oscuro .top-navbar {
-            background: #1e293b;
-            border-bottom-color: #334155;
-        }
-        body.tema-oscuro .top-navbar .fw-semibold.text-dark {
-            color: #f1f5f9 !important;
-        }
-        body.tema-oscuro .top-navbar .user-pill {
-            color: #e2e8f0 !important;
-        }
-        body.tema-oscuro .top-navbar .user-pill i {
-            color: #94a3b8 !important;
-        }
-        body.tema-oscuro .top-navbar .btn-outline-secondary {
-            --bs-btn-color: #cbd5e1;
-            --bs-btn-border-color: #475569;
-            --bs-btn-hover-bg: #334155;
-            --bs-btn-hover-border-color: #64748b;
-        }
-        body.tema-oscuro .card.page-card {
-            background: #1e293b;
-            color: #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-        }
-        body.tema-oscuro .text-muted {
-            color: #94a3b8 !important;
-        }
-        body.tema-oscuro .card.page-card .text-dark {
-            color: #f8fafc !important;
-        }
-        body.tema-oscuro .table {
-            --bs-table-bg: transparent;
-            color: #e2e8f0;
-        }
-        .app-main.no-sidebar {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            width: 100% !important;
-        }
-        .top-navbar {
-            background: #fff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 0.65rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            max-width: 100%;
-            box-sizing: border-box;
-        }
-        /* Con barra a la derecha: cabecera alineada al contenido y menú junto al lateral */
-        body.sidebar-derecha .top-navbar {
-            flex-direction: row-reverse;
-        }
-        .top-navbar .user-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #334155;
-            font-weight: 500;
-        }
-        .top-navbar .user-pill i { font-size: 1.35rem; color: #64748b; }
-        .nav-notif-bell { text-decoration: none !important; }
-        .nav-notif-bell .fa-bell { vertical-align: middle; }
-        #dropdownNotificacionesMenu.dropdown-menu-notifs {
-            background: #1e293b;
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            min-width: 320px;
-            max-width: min(400px, 94vw);
-        }
-        #dropdownNotificacionesMenu .notifs-header {
-            color: #e2e8f0;
-            background: #0f172a;
-            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-        }
-        #dropdownNotificacionesMenu .nav-notif-item {
-            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-            color: #f8fafc;
-            white-space: normal;
-        }
-        #dropdownNotificacionesMenu .nav-notif-item:hover,
-        #dropdownNotificacionesMenu .nav-notif-item:focus {
-            background: #334155;
-            color: #fff;
-        }
-        #dropdownNotificacionesMenu .nav-notif-item.notif-nuevo {
-            background: #1e293b;
-        }
-        #dropdownNotificacionesMenu .nav-notif-item.notif-visto {
-            background: #0f172a;
-            color: #94a3b8;
-        }
-        #dropdownNotificacionesMenu .nav-notif-item.notif-visto .notif-titular {
-            color: #94a3b8;
-        }
-        #dropdownNotificacionesMenu .notif-secundario {
-            color: #94a3b8;
-            font-size: 0.78rem;
-            line-height: 1.35;
-            margin-top: 0.2rem;
-        }
-        #dropdownNotificacionesMenu .nav-notif-item.notif-visto .notif-secundario {
-            color: #64748b;
-        }
-        #dropdownNotificacionesMenu .nav-notif-item.notif-visto .nav-notif-dot {
-            display: none !important;
-        }
-        #dropdownNotificacionesMenu .nav-notif-icon {
-            width: 1.35rem;
-            text-align: center;
-            flex-shrink: 0;
-            margin-top: 0.1rem;
-        }
-        #dropdownNotificacionesMenu .nav-notif-dot {
-            width: 0.5rem;
-            height: 0.5rem;
-            border-radius: 50%;
-            background: #38bdf8;
-            flex-shrink: 0;
-            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
-        }
-        #dropdownNotificacionesMenu .notifs-empty {
-            color: #94a3b8;
-            background: #1e293b;
-        }
-        .content-wrap {
-            padding: 1.5rem;
-        }
-        .card.page-card {
-            border: none;
-            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-        }
-        .login-wrap {
-            min-height: calc(100vh - 2rem);
-            display: flex;
-            align-items: center;
-        }
-        @media (max-width: 991.98px) {
-            .app-sidebar {
-                transform: translateX(-100%);
-            }
-            body.sidebar-derecha .app-sidebar {
-                transform: translateX(100%);
-            }
-            .app-sidebar.mobile-open {
-                transform: translateX(0) !important;
-            }
-            .app-main {
-                margin-left: 0 !important;
-                margin-right: 0 !important;
-                width: 100% !important;
-            }
-            body.sidebar-derecha .top-navbar {
-                flex-direction: row;
-            }
         }
     </style>
 </head>
@@ -479,13 +113,13 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
         <a class="nav-link <?= $currentNav === 'usuarios' ? 'active' : '' ?>" href="index.php?page=usuarios">
             <i class="fa-solid fa-user-shield"></i><span class="nav-text">Usuarios</span>
         </a>
+        <?php endif; ?>
         <a class="nav-link <?= $currentNav === 'config' ? 'active' : '' ?>" href="index.php?page=config">
             <i class="fa-solid fa-gear"></i><span class="nav-text">Configuración</span>
         </a>
-        <?php endif; ?>
     </nav>
     <div class="sidebar-footer">
-        <!-- Cerrar sesión queda siempre visible al pie del sidebar -->
+        <!-- Cerrar sesion queda siempre visible al pie del sidebar -->
         <a class="nav-link text-warning-emphasis mt-1" href="index.php?page=logout">
             <i class="fa-solid fa-right-from-bracket"></i><span class="nav-text">Cerrar sesión</span>
         </a>
@@ -512,7 +146,7 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
             </div>
             <nav class="d-none d-md-flex align-items-center gap-3 ms-2">
                 <a href="#modulos" class="small text-decoration-none text-secondary">Módulos</a>
-                <a href="#precios" class="small text-decoration-none text-secondary">Precios orientativos</a>
+                <a href="#precios" class="small text-decoration-none text-secondary">Precios</a>
                 <a href="#acerca" class="small text-decoration-none text-secondary">Acerca de</a>
                 <a href="#confianza" class="small text-decoration-none text-secondary">Confianza</a>
             </nav>
@@ -565,6 +199,7 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
             <div class="user-pill">
                 <i class="fa-solid fa-circle-user" aria-hidden="true"></i>
                 <span><?= htmlspecialchars($usuarioNombre) ?></span>
+                <span class="user-role-tag role-<?= $usuarioRol === 'admin' ? 'admin' : 'empleado' ?>"><?= htmlspecialchars($usuarioRolLabel) ?></span>
             </div>
         </div>
         <?php elseif (!$showSidebar && !empty($publicTopButtons)): ?>

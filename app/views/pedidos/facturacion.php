@@ -1,5 +1,8 @@
 <?php
-// Panel de facturación con filtros por estado y mes.
+// Panel de facturacion:
+// - Filtro por mes
+// - Filtro por estado de factura (todos / pendiente / realizada)
+// - Acciones por fila (ver, editar pendiente, historial, cerrar)
 $pageTitle = 'Facturación';
 $currentNav = 'facturacion';
 ob_start();
@@ -44,6 +47,7 @@ ob_start();
                 <?php if (!empty($facturas)): ?>
                     <?php foreach ($facturas as $f): ?>
                         <?php
+                        // En esta demo, "factura realizada" equivale a pedido en estado "realizado".
                         $esRealizada = (string) $f['estado'] === 'realizado';
                         $estadoFacturaLabel = $esRealizada ? 'Realizada' : 'Pendiente';
                         ?>

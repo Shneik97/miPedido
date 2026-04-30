@@ -10,9 +10,19 @@ require_once '../app/controllers/TareaController.php';
 require_once '../app/controllers/CalendarioController.php';
 require_once '../app/controllers/MiEntornoController.php';
 require_once '../app/controllers/LoginController.php';
+require_once '../app/controllers/PlanController.php';
 
 /**
- * Ejecuta una acción de controlador sin parámetros.
+ * Router simple del proyecto.
+ * Nivel estudiante:
+ * - Lee `page` desde la URL.
+ * - Si es vista directa -> include de vista.
+ * - Si es ruta de controlador -> ejecuta metodo.
+ * - Si no existe -> fallback a login.
+ */
+
+/**
+ * Ejecuta una accion de controlador sin parametros.
  */
 function dispatchController(string $controllerClass, string $method): void
 {
@@ -20,7 +30,7 @@ function dispatchController(string $controllerClass, string $method): void
 }
 
 /**
- * Ejecuta una acción que requiere "id" en query string.
+ * Ejecuta una accion que requiere "id" en query string.
  * Si no existe, no se ejecuta nada para mantener el comportamiento actual.
  */
 function dispatchControllerWithId(string $controllerClass, string $method): void
@@ -32,7 +42,7 @@ function dispatchControllerWithId(string $controllerClass, string $method): void
 }
 
 /**
- * Cierra sesión y limpia la preferencia de sidebar colapsado.
+ * Cierra sesion y limpia la preferencia de sidebar colapsado.
  */
 function dispatchLogout(): void
 {
@@ -44,33 +54,40 @@ function dispatchLogout(): void
     header('Location: index.php?page=login');
 }
 
-// Página solicitada por query string. Si no viene, se muestra la home pública.
+// Pagina solicitada por query string. Si no viene, se muestra la home publica.
 $page = (string) ($_GET['page'] ?? 'home');
 
-// Rutas que solo renderizan una vista.
+// Rutas que solo renderizan una vista (sin pasar por controlador).
 $viewRoutes = [
     'home' => '../app/views/home.php',
     '403' => '../app/views/403.php',
 ];
 
-// Rutas de controlador sin parámetros de entrada por URL.
+// Rutas de controlador (acciones principales de la app).
 $controllerRoutes = [
     'dashboard' => [DashboardController::class, 'index'],
+    'dashboard_onboarding_complete' => [DashboardController::class, 'onboardingComplete'],
     'login' => [LoginController::class, 'login'],
+    'forgot_password' => [LoginController::class, 'forgotPassword'],
+    'forgot_password_reset' => [LoginController::class, 'forgotPasswordReset'],
     'register' => [LoginController::class, 'register'],
     'register_store' => [LoginController::class, 'registerStore'],
     'auth_google_start' => [LoginController::class, 'authGoogleStart'],
     'auth_google_callback' => [LoginController::class, 'authGoogleCallback'],
+    'plan_select' => [PlanController::class, 'select'],
+    'plan_select_store' => [PlanController::class, 'store'],
     'clientes' => [ClienteController::class, 'index'],
     'clientes_create' => [ClienteController::class, 'create'],
     'clientes_store' => [ClienteController::class, 'store'],
     'clientes_edit' => [ClienteController::class, 'edit'],
     'clientes_update' => [ClienteController::class, 'update'],
+    'clientes_delete' => [ClienteController::class, 'delete'],
     'productos' => [ProductoController::class, 'index'],
     'productos_create' => [ProductoController::class, 'create'],
     'productos_store' => [ProductoController::class, 'store'],
     'productos_edit' => [ProductoController::class, 'edit'],
     'productos_update' => [ProductoController::class, 'update'],
+    'productos_delete' => [ProductoController::class, 'delete'],
     'pedidos' => [PedidoController::class, 'index'],
     'pedidos_create' => [PedidoController::class, 'create'],
     'pedidos_store' => [PedidoController::class, 'store'],
@@ -91,17 +108,13 @@ $controllerRoutes = [
     'usuarios_store' => [UsuarioController::class, 'store'],
     'usuarios_edit' => [UsuarioController::class, 'edit'],
     'usuarios_update' => [UsuarioController::class, 'update'],
+    'usuarios_delete' => [UsuarioController::class, 'delete'],
     'config' => [ConfigController::class, 'index'],
+    'config_email_verify_send' => [ConfigController::class, 'emailVerificacionEnviar'],
+    'config_plan_update' => [ConfigController::class, 'planUpdate'],
     'mi_entorno' => [MiEntornoController::class, 'index'],
     'mi_entorno_update' => [MiEntornoController::class, 'update'],
-];
-
-// Rutas que exigen id por query string.
-$idRoutes = [
-    'clientes_delete' => [ClienteController::class, 'delete'],
-    'productos_delete' => [ProductoController::class, 'delete'],
     'pedidos_delete' => [PedidoController::class, 'delete'],
-    'usuarios_delete' => [UsuarioController::class, 'delete'],
 ];
 
 if (isset($viewRoutes[$page])) {
@@ -117,12 +130,6 @@ if ($page === 'logout') {
 if (isset($controllerRoutes[$page])) {
     [$controllerClass, $method] = $controllerRoutes[$page];
     dispatchController($controllerClass, $method);
-    return;
-}
-
-if (isset($idRoutes[$page])) {
-    [$controllerClass, $method] = $idRoutes[$page];
-    dispatchControllerWithId($controllerClass, $method);
     return;
 }
 

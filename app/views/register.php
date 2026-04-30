@@ -1,5 +1,6 @@
 <?php
-// Registro público de cuenta local (rol empleado).
+// Registro publico de cuenta local.
+// Nivel estudiante: formulario directo con validaciones HTML basicas.
 $pageTitle = 'Crear cuenta';
 $showSidebar = false;
 $currentNav = '';
@@ -8,7 +9,7 @@ unset($_SESSION['register_error']);
 ob_start();
 ?>
 <div class="row justify-content-center w-100">
-    <div class="col-12 col-md-7 col-lg-6 col-xl-5">
+    <div class="col-12 col-md-6 col-lg-5 col-xl-4">
         <div class="card page-card shadow">
             <div class="card-body p-4">
                 <?php if (!empty($registerError)): ?>
@@ -46,13 +47,11 @@ ob_start();
                 </form>
 
                 <a href="index.php?page=auth_google_start" class="btn btn-outline-dark w-100 py-2 mb-3">
-                    <i class="fa-brands fa-google me-2"></i>Registrarme con Google (Auth0)
+                    <i class="fa-brands fa-google me-2"></i>Registrarme con Google
                 </a>
 
                 <div class="text-center">
                     <a href="index.php?page=login" class="small text-decoration-none">Ya tengo cuenta</a>
-                    <span class="mx-1 text-muted">·</span>
-                    <a href="index.php?page=home" class="small text-decoration-none">Volver a presentación</a>
                 </div>
             </div>
         </div>

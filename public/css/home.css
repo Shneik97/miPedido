@@ -1,0 +1,311 @@
+/* Landing/Home (nivel estudiante).
+   Separamos este CSS para que la vista home.php sea mas limpia y facil de leer. */
+
+.landing-wrap { max-width: 1180px; margin: 0 auto; }
+/* Hero principal de la landing (mensaje + CTA inicial). */
+.landing-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.landing-hero {
+    background: linear-gradient(140deg, #0b1f4a 0%, #102a67 45%, #0f3ea8 100%);
+    color: #fff;
+    border-radius: 1rem;
+    padding: 3.2rem 1.6rem;
+    margin-top: 1rem;
+}
+.landing-hero h1 { letter-spacing: -0.01em; }
+.landing-hero-sub {
+    color: rgba(226, 232, 240, 0.95);
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.landing-hero-content {
+    max-width: 860px;
+    margin: 0 auto;
+    text-align: center;
+}
+.landing-hero-content .d-flex {
+    justify-content: center;
+}
+/* Secciones generales y tarjetas de capacidades. */
+.landing-section { padding: 3rem 0 1rem; }
+.landing-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.9rem;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    padding: 1rem;
+    height: 100%;
+}
+.landing-card h3 { margin-bottom: 0.55rem; }
+/* Bloque "Acerca de" con estilo destacado. */
+.landing-about {
+    border: 1px solid #bfdbfe;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+    padding: 1.5rem 1.35rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.landing-about::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 12% 18%, rgba(37, 99, 235, 0.09), transparent 50%);
+    pointer-events: none;
+}
+.landing-about h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.6rem;
+    position: relative;
+}
+.landing-about p {
+    margin: 0 auto;
+    color: #334155;
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 940px;
+    position: relative;
+}
+/* KPIs resumidos de la landing. */
+.landing-stat {
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+    border-radius: 0.85rem;
+    padding: 0.8rem 0.9rem;
+    height: 100%;
+}
+.landing-stat .n {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+.landing-stat .t {
+    color: #475569;
+    font-size: 0.82rem;
+}
+/* Zona de "confianza" con logos y casos demo. */
+.landing-trust {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.95rem;
+    background: #f8fafc;
+    padding: 1.2rem;
+}
+.landing-trust-logos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+    width: 100%;
+}
+.landing-logo-box {
+    border: 1px solid #dbeafe;
+    border-radius: 0.7rem;
+    background: #fff;
+    padding: 0.75rem;
+    color: #334155;
+}
+.landing-logo-media {
+    width: 100%;
+    height: 92px;
+    border-radius: 0.45rem;
+    background: #fff;
+    overflow: hidden;
+    border: 0;
+    padding: 0.35rem;
+    margin-bottom: 0.55rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.landing-logo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    transform: none;
+    image-rendering: auto;
+}
+.landing-logo-name {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 0.2rem;
+    line-height: 1.25;
+}
+.landing-logo-sector {
+    display: block;
+    font-size: 0.73rem;
+    color: #2563eb;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+}
+.landing-logo-use {
+    display: block;
+    font-size: 0.75rem;
+    color: #475569;
+    line-height: 1.3;
+}
+/* Animacion de aparicion al hacer scroll. */
+.reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+/* Tarjetas de planes y bloque CTA final. */
+.pricing-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.9rem;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+    padding: 1.1rem;
+    height: 100%;
+}
+.pricing-card--featured {
+    border-color: #93c5fd;
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.18);
+}
+.pricing-price {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+/* Footer informativo de la landing. */
+.landing-footer {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 2.4rem;
+    padding: 2rem 0 2.2rem;
+    color: #64748b;
+    font-size: 0.86rem;
+}
+.landing-cta {
+    border: 1px solid #dbeafe;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    border-radius: 1rem;
+    padding: 1.6rem 1.35rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    text-align: center;
+}
+.landing-cta h2 {
+    font-size: 1.95rem;
+    font-weight: 700;
+    margin-bottom: 0.55rem;
+    color: #0f172a;
+}
+.landing-cta p {
+    font-size: 1.03rem;
+    color: #475569;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.landing-cta .btn {
+    padding: 0.58rem 1rem;
+    font-weight: 600;
+}
+.landing-footer-top {
+    display: grid;
+    grid-template-columns: 1.2fr repeat(4, 1fr);
+    gap: 1rem 1.4rem;
+    align-items: start;
+}
+.landing-footer-brand {
+    color: #0f172a;
+}
+.landing-footer-brand .brand-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.65rem;
+}
+.landing-footer-brand .contact-line {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    margin-bottom: 0.45rem;
+    color: #334155;
+    font-size: 0.84rem;
+}
+.landing-footer-title {
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin-bottom: 0.65rem;
+}
+.landing-footer-col a {
+    display: block;
+    text-decoration: none;
+    color: #475569;
+    font-size: 0.84rem;
+    margin-bottom: 0.45rem;
+}
+.landing-footer-col a:hover { color: #2563eb; }
+.landing-footer-bottom {
+    margin-top: 1.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+.landing-socials {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.landing-socials a {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: 1px solid #cbd5e1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    text-decoration: none;
+    background: #fff;
+    transition: all .15s ease;
+}
+.landing-socials a:hover {
+    color: #2563eb;
+    border-color: #93c5fd;
+    transform: translateY(-1px);
+}
+/* Adaptaciones responsive para tablet y movil. */
+@media (max-width: 991.98px) {
+    .landing-trust-logos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .landing-cta h2 { font-size: 1.55rem; }
+    .landing-cta p { font-size: 0.95rem; }
+    .landing-about h2 { font-size: 1.65rem; }
+    .landing-about p { font-size: 0.95rem; }
+    .landing-footer-top { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 575.98px) {
+    .landing-trust-logos { grid-template-columns: 1fr; }
+    .landing-cta { padding: 1.25rem 1rem; }
+    .landing-cta h2 { font-size: 1.35rem; }
+    .landing-about { padding: 1.2rem 0.95rem; }
+    .landing-about h2 { font-size: 1.35rem; }
+    .landing-about p { font-size: 0.92rem; }
+    .landing-footer-top { grid-template-columns: 1fr; }
+}

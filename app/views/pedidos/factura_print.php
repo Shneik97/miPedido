@@ -1,4 +1,8 @@
 <?php
+// Factura imprimible:
+// - Modo lectura (por defecto)
+// - Modo edicion (solo si el pedido no esta realizado)
+// Este archivo no usa layout general porque se imprime como documento independiente.
 $total = 0.0;
 foreach ($lineas as $ln) {
     $total += (float) $ln['cantidad'] * (float) $ln['precio_unitario'];
@@ -122,7 +126,8 @@ $esRealizada = ((string) ($cab['estado'] ?? '') === 'realizado');
         </p>
     </div>
 
-    <?php if (!empty($editMode) && !$esRealizada): ?>
+<?php if (!empty($editMode) && !$esRealizada): ?>
+        <!-- Modo edicion: permite cambiar metodo de pago y lineas antes de cerrar pedido. -->
         <form method="post" action="index.php?page=pedido_factura_guardar">
             <?= csrfInput() ?>
             <input type="hidden" name="id" value="<?= (int) $cab['id'] ?>">
@@ -178,6 +183,7 @@ $esRealizada = ((string) ($cab['estado'] ?? '') === 'realizado');
             </div>
         </form>
     <?php else: ?>
+        <!-- Modo lectura: vista final de factura para imprimir o exportar en PDF. -->
         <div class="block">
             <h2>Pago</h2>
             <p style="margin:0;"><?= htmlspecialchars($metodo) ?></p>

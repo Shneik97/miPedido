@@ -1,5 +1,8 @@
 <?php
-// Pantalla de acceso: login local y enlaces de registro/inicio con Google.
+// Pantalla de acceso:
+// - Login local (email + contraseña)
+// - Acceso con Google (Auth0)
+// - Enlaces a registro y recuperacion de contraseña
 $pageTitle = 'Iniciar sesión';
 $showSidebar = false;
 $currentNav = '';
@@ -43,8 +46,12 @@ ob_start();
                     <button type="submit" class="btn btn-primary w-100 py-2">
                         <i class="fa-solid fa-right-to-bracket me-2"></i>Entrar
                     </button>
+                    <a href="index.php?page=auth_google_start" class="btn btn-outline-dark w-100 py-2 mt-2">
+                        <i class="fa-brands fa-google me-2"></i>Ingresar con Google
+                    </a>
                 </form>
                 <div class="text-center mt-3">
+                    <a href="index.php?page=forgot_password" class="small text-decoration-none d-block mb-1">Olvidé mi contraseña</a>
                     <a href="index.php?page=register" class="small text-decoration-none">Crear cuenta nueva</a>
                 </div>
             </div>

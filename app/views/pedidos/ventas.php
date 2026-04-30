@@ -1,5 +1,8 @@
 <?php
-// Resumen mensual de ventas con detalle del mes seleccionado.
+// Vista de ventas:
+// 1) KPI del mes seleccionado (total, pedidos, ticket medio)
+// 2) Tabla con detalle de pedidos de ese mes
+// Nivel estudiante: el calculo viene del controlador; esta vista solo presenta.
 $pageTitle = 'Ventas';
 $currentNav = 'ventas';
 ob_start();

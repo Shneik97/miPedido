@@ -11,26 +11,35 @@ class TareaController {
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
+    }
+
+    /**
+     * Redirección corta para simplificar el controlador.
+     */
+    private function redirect(string $url): void {
+        header('Location: ' . $url);
+        exit;
     }
 
     public function index(): void {
         $this->requireAuth();
         $uid = (int) $_SESSION['usuario']['id'];
+        $workspaceKey = currentWorkspaceKey();
         /** @var bool $isAdmin visible en la vista para el botón "Nueva tarea" */
         $isAdmin = isAdmin();
-        $tareas = (new Tarea())->getAllForUser($uid, $isAdmin);
+        $tareas = (new Tarea())->getAllForUser($uid, $isAdmin, $workspaceKey);
         require __DIR__ . '/../views/tareas/index.php';
     }
 
     public function create(): void {
         $this->requireAuth();
         checkRole('admin');
-        $usuarios = (new Usuario())->getAll();
+        $workspaceKey = currentWorkspaceKey();
+        $usuarios = (new Usuario())->getAll($workspaceKey);
         require_once __DIR__ . '/../models/Pedido.php';
-        $pedidos = (new Pedido())->getAllResumen();
+        $pedidos = (new Pedido())->getAllResumen($workspaceKey);
         require __DIR__ . '/../views/tareas/create.php';
     }
 
@@ -38,8 +47,7 @@ class TareaController {
         $this->requireAuth();
         checkRole('admin');
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=tareas_create&error=csrf');
-            exit;
+            $this->redirect('index.php?page=tareas_create&error=csrf');
         }
         $titulo = trim((string) ($_POST['titulo'] ?? ''));
         $descripcion = trim((string) ($_POST['descripcion'] ?? ''));
@@ -48,34 +56,31 @@ class TareaController {
         $fechaLim = trim((string) ($_POST['fecha_limite'] ?? ''));
 
         if ($titulo === '' || $asignado < 1) {
-            header('Location: index.php?page=tareas_create&error=invalido');
-            exit;
+            $this->redirect('index.php?page=tareas_create&error=invalido');
         }
 
         $creadoPor = (int) $_SESSION['usuario']['id'];
+        $workspaceKey = currentWorkspaceKey();
         $pid = $pedidoId > 0 ? $pedidoId : null;
         $fl = $fechaLim !== '' ? $fechaLim : null;
 
-        (new Tarea())->create($titulo, $descripcion, $asignado, $creadoPor, $pid, $fl);
-        header('Location: index.php?page=tareas&ok=creada');
-        exit;
+        (new Tarea())->create($titulo, $descripcion, $asignado, $creadoPor, $pid, $fl, false, $workspaceKey);
+        $this->redirect('index.php?page=tareas&ok=creada');
     }
 
     public function cambiarEstado(): void {
         $this->requireAuth();
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-            header('Location: index.php?page=tareas');
-            exit;
+            $this->redirect('index.php?page=tareas');
         }
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=tareas&error=csrf');
-            exit;
+            $this->redirect('index.php?page=tareas&error=csrf');
         }
         $id = (int) ($_POST['id'] ?? 0);
         $estado = (string) ($_POST['estado'] ?? '');
         $actorId = (int) $_SESSION['usuario']['id'];
-        $ok = (new Tarea())->updateEstado($id, $estado, $actorId, isAdmin());
-        header('Location: index.php?page=tareas&' . ($ok ? 'ok=estado' : 'error=estado'));
-        exit;
+        $workspaceKey = currentWorkspaceKey();
+        $ok = (new Tarea())->updateEstado($id, $estado, $actorId, isAdmin(), $workspaceKey);
+        $this->redirect('index.php?page=tareas&' . ($ok ? 'ok=estado' : 'error=estado'));
     }
 }

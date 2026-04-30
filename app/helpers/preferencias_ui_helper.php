@@ -1,7 +1,21 @@
 <?php
 
 /**
+ * PREFERENCIAS UI HELPER (nivel estudiante)
+ * -----------------------------------------
+ * Maneja la configuración visual del usuario (tema, color, posición del sidebar...).
+ *
+ * Idea principal:
+ * - En base de datos se guarda JSON.
+ * - Este helper normaliza/sanea esos datos para que nunca rompan la interfaz.
+ *
+ * Beneficio:
+ * - Si el JSON viene incompleto o con valores inválidos, se aplican valores por defecto.
+ */
+/**
  * Preferencias de interfaz guardadas en usuarios.preferencias_ui (JSON).
+ * Ejemplo de valores por defecto:
+ * ['sidebar_pos' => 'izquierda', 'acento' => 'cyan', ...]
  */
 function preferenciasUiDefaults(): array
 {
@@ -16,6 +30,9 @@ function preferenciasUiDefaults(): array
 
 /**
  * @param mixed $raw JSON string desde BD, array ya decodificado, o null
+ * Ejemplo:
+ * - Entrada null -> devuelve defaults.
+ * - Entrada '{"acento":"verde"}' -> completa el resto con defaults.
  */
 function preferenciasUiNormalize($raw): array
 {
@@ -30,11 +47,17 @@ function preferenciasUiNormalize($raw): array
             return $defaults;
         }
     }
+    // Solo se conservan claves conocidas; el resto se ignora.
     $merged = array_merge($defaults, array_intersect_key($data, $defaults));
     $merged['sidebar_collapsed'] = !empty($merged['sidebar_collapsed']);
     return preferenciasUiSanitize($merged);
 }
 
+/**
+ * Limpia y valida valores permitidos.
+ * Ejemplo:
+ * - Si llega acento="rosa" (no permitido), lo cambia a "cyan" (default).
+ */
 function preferenciasUiSanitize(array $p): array
 {
     $allowed = [
@@ -89,6 +112,7 @@ function mipedido_sidebar_emit_collapse_cookie(bool $collapsed): void
     setcookie($name, $collapsed ? '1' : '0', [
         'expires' => time() + 365 * 24 * 60 * 60,
         'path' => '/',
+        // En local/HTTP mantenemos false para no romper la cookie.
         'secure' => false,
         'httponly' => false,
         'samesite' => 'Lax',
@@ -110,6 +134,9 @@ function mipedido_sidebar_clear_collapse_cookie(): void
 
 /**
  * Si hay cookie (usuario pulsó el botón de colapsar), manda sobre la preferencia guardada en BD.
+ * Ejemplo:
+ * - Cookie=1 -> sidebar colapsado (true).
+ * - Sin cookie -> usa lo guardado en preferencias_ui.
  */
 function mipedido_sidebar_collapsed_for_layout(bool $showSidebar, array $prefsUi): bool
 {

@@ -1,6 +1,9 @@
 <?php
 /**
  * Listado de pedidos: acciones factura, WhatsApp inteligente, marcar realizado, historial.
+ * Nivel estudiante:
+ * - Se preparan etiquetas y enlaces en PHP.
+ * - El HTML solo pinta tabla y botones.
  */
 require_once __DIR__ . '/../../helpers/whatsapp_helper.php';
 
@@ -23,6 +26,7 @@ $estadosMap = [
     'cancelado' => 'Cancelado',
     'realizado' => 'Realizado',
 ];
+// Idea estudiante: este bloque traduce valores internos de BD a textos bonitos de la interfaz.
 ?>
 <div class="card page-card">
     <div class="card-body">
@@ -65,6 +69,7 @@ $estadosMap = [
                     <?php if (!empty($pedidos)): ?>
                         <?php foreach ($pedidos as $row): ?>
                             <?php
+                            // Variables por fila para no repetir logica en varios botones.
                             $est = (string) $row['estado'];
                             $puedeRealizado = ($est !== 'cancelado' && $est !== 'realizado');
                             $telNorm = normalizarTelefonoEspana((string) ($row['cliente_telefono'] ?? ''));
@@ -118,6 +123,7 @@ $estadosMap = [
                                         <i class="fa-solid fa-clock-rotate-left"></i>
                                     </a>
                                     <?php if (!empty($isAdmin) && $est !== 'realizado'): ?>
+                                    <!-- Regla de negocio: si ya esta realizado, no se permite borrar. -->
                                     <form method="post" action="index.php?page=pedidos_delete&id=<?= (int) $row['id'] ?>" class="d-inline js-confirm-delete" data-confirm-message="¿Eliminar este pedido?">
                                         <?= csrfInput() ?>
                                         <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

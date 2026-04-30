@@ -15,16 +15,24 @@ class ClienteController {
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
+    }
+
+    /**
+     * Atajo para redirecciones (evita repetir header+exit).
+     */
+    private function redirect(string $url): void {
+        header('Location: ' . $url);
+        exit;
     }
 
     public function index() {
         $this->requireAuth();
         $isAdmin = isAdmin();
+        $workspaceKey = currentWorkspaceKey();
         $cliente = new Cliente();
-        $clientes = $cliente->getAll();
+        $clientes = $cliente->getAll($workspaceKey);
         require __DIR__ . '/../views/clientes/index.php';
     }
 
@@ -42,24 +50,23 @@ class ClienteController {
         checkRole('admin');
         // CSRF: solo aceptamos el formulario generado por nuestra app.
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=clientes&error=csrf');
-            exit;
+            $this->redirect('index.php?page=clientes&error=csrf');
         }
+        $workspaceKey = currentWorkspaceKey();
         $cliente = new Cliente();
-        $cliente->create($_POST);
-        header('Location: index.php?page=clientes');
-        exit;
+        $cliente->create($_POST, $workspaceKey);
+        $this->redirect('index.php?page=clientes');
     }
 
     public function edit() {
         $this->requireAuth();
         checkRole('admin');
         $id = $_GET['id'] ?? '';
+        $workspaceKey = currentWorkspaceKey();
         $cliente = new Cliente();
-        $c = $cliente->getById($id);
+        $c = $cliente->getById($id, $workspaceKey);
         if (!$c) {
-            header('Location: index.php?page=clientes');
-            exit;
+            $this->redirect('index.php?page=clientes');
         }
         require __DIR__ . '/../views/clientes/edit.php';
     }
@@ -68,25 +75,31 @@ class ClienteController {
         $this->requireAuth();
         checkRole('admin');
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=clientes&error=csrf');
-            exit;
+            $this->redirect('index.php?page=clientes&error=csrf');
         }
         $id = $_POST['id'];
+        $workspaceKey = currentWorkspaceKey();
         $cliente = new Cliente();
-        $cliente->update($id, $_POST);
-        header('Location: index.php?page=clientes');
-        exit;
+        $cliente->update($id, $_POST, $workspaceKey);
+        $this->redirect('index.php?page=clientes');
     }
 
     /**
      * Elimina un cliente por id.
      */
-    public function delete($id) {
+    public function delete(): void {
         $this->requireAuth();
         checkRole('admin');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
+            $this->redirect('index.php?page=clientes&error=csrf');
+        }
+        $id = (int) ($_POST['id'] ?? 0);
+        if ($id < 1) {
+            $this->redirect('index.php?page=clientes');
+        }
+        $workspaceKey = currentWorkspaceKey();
         $cliente = new Cliente();
-        $cliente->delete($id);
-        header('Location: index.php?page=clientes');
-        exit;
+        $cliente->delete($id, $workspaceKey);
+        $this->redirect('index.php?page=clientes');
     }
 }

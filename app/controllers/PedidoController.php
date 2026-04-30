@@ -16,23 +16,32 @@ class PedidoController {
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
+    }
+
+    /**
+     * Helper simple para no repetir header+exit en cada método.
+     */
+    private function redirect(string $url): void {
+        header('Location: ' . $url);
+        exit;
     }
 
     public function index(): void {
         $this->requireAuth();
         $isAdmin = isAdmin();
+        $workspaceKey = currentWorkspaceKey();
         $pedido = new Pedido();
-        $pedidos = $pedido->getAllResumen();
+        $pedidos = $pedido->getAllResumen($workspaceKey);
         require __DIR__ . '/../views/pedidos/index.php';
     }
 
     public function create(): void {
         $this->requireAuth();
-        $clientes = (new Cliente())->getAll();
-        $productos = (new Producto())->getAll();
+        $workspaceKey = currentWorkspaceKey();
+        $clientes = (new Cliente())->getAll($workspaceKey);
+        $productos = (new Producto())->getAll($workspaceKey);
         $error = $_GET['error'] ?? '';
         require __DIR__ . '/../views/pedidos/create.php';
     }
@@ -43,13 +52,13 @@ class PedidoController {
     public function store(): void {
         $this->requireAuth();
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=pedidos_create&error=csrf');
-            exit;
+            $this->redirect('index.php?page=pedidos_create&error=csrf');
         }
         $clienteId = (int) ($_POST['cliente_id'] ?? 0);
         $productoId = (int) ($_POST['producto_id'] ?? 0);
         $cantidad = (int) ($_POST['cantidad'] ?? 0);
         $metodo = $_POST['metodo_pago'] ?? 'efectivo';
+        $workspaceKey = currentWorkspaceKey();
 
         $allowed = ['efectivo', 'tarjeta', 'transferencia'];
         if (!in_array($metodo, $allowed, true)) {
@@ -57,10 +66,10 @@ class PedidoController {
         }
 
         $producto = new Producto();
-        $p = $producto->getById($productoId);
-        if (!$p || $clienteId < 1) {
-            header('Location: index.php?page=pedidos_create&error=invalid');
-            exit;
+        $p = $producto->getById($productoId, $workspaceKey);
+        $cliente = (new Cliente())->getById($clienteId, $workspaceKey);
+        if (!$p || !$cliente || $clienteId < 1) {
+            $this->redirect('index.php?page=pedidos_create&error=invalid');
         }
 
         $precio = (float) $p['precio'];
@@ -68,56 +77,52 @@ class PedidoController {
         $usuarioId = isset($_SESSION['usuario']['id']) ? (int) $_SESSION['usuario']['id'] : null;
 
         try {
-            (new Pedido())->createWithDetalle($clienteId, $productoId, $cantidad, $metodo, $precio, $usuarioId);
+            (new Pedido())->createWithDetalle($clienteId, $productoId, $cantidad, $metodo, $precio, $usuarioId, $workspaceKey);
         } catch (Throwable $e) {
             $code = strpos($e->getMessage(), 'Stock') !== false ? 'stock' : 'fail';
-            header('Location: index.php?page=pedidos_create&error=' . $code);
-            exit;
+            $this->redirect('index.php?page=pedidos_create&error=' . $code);
         }
 
-        header('Location: index.php?page=pedidos');
-        exit;
+        $this->redirect('index.php?page=pedidos');
     }
 
     /**
      * Elimina pedido pendiente (solo admin, POST + CSRF).
      */
-    public function delete(string $id): void {
+    public function delete(): void {
         $this->requireAuth();
         checkRole('admin');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
-            header('Location: index.php?page=pedidos&error=csrf');
-            exit;
+            $this->redirect('index.php?page=pedidos&error=csrf');
         }
         $idPost = (int) ($_POST['id'] ?? 0);
-        if ($idPost > 0) {
-            $id = (string) $idPost;
+        if ($idPost < 1) {
+            $this->redirect('index.php?page=pedidos');
         }
         $pedido = new Pedido();
         $ok = false;
         try {
-            $ok = $pedido->delete((int) $id);
+            $ok = $pedido->delete($idPost, currentWorkspaceKey());
         } catch (Throwable $e) {
             $ok = false;
         }
         $q = $ok ? 'ok=delete' : 'error=delete';
-        header('Location: index.php?page=pedidos&' . $q);
-        exit;
+        $this->redirect('index.php?page=pedidos&' . $q);
     }
 
     public function factura(): void {
         $this->requireAuth();
         $id = (int) ($_GET['id'] ?? 0);
+        $workspaceKey = currentWorkspaceKey();
         $editMode = (string) ($_GET['edit'] ?? '') === '1';
         $ok = (string) ($_GET['ok'] ?? '');
         $error = (string) ($_GET['error'] ?? '');
         $pedido = new Pedido();
-        $cab = $pedido->getById($id);
+        $cab = $pedido->getById($id, $workspaceKey);
         if (!$cab) {
-            header('Location: index.php?page=pedidos');
-            exit;
+            $this->redirect('index.php?page=pedidos');
         }
-        $lineas = $pedido->getLineasFactura($id);
+        $lineas = $pedido->getLineasFactura($id, $workspaceKey);
         require __DIR__ . '/../views/pedidos/factura_print.php';
     }
 
@@ -128,14 +133,12 @@ class PedidoController {
         $this->requireAuth();
         if (!csrfIsValidRequest()) {
             $id = (int) ($_POST['id'] ?? 0);
-            header('Location: index.php?page=pedido_factura&id=' . $id . '&edit=1&error=csrf');
-            exit;
+            $this->redirect('index.php?page=pedido_factura&id=' . $id . '&edit=1&error=csrf');
         }
 
         $id = (int) ($_POST['id'] ?? 0);
         if ($id < 1) {
-            header('Location: index.php?page=facturacion');
-            exit;
+            $this->redirect('index.php?page=facturacion');
         }
 
         $metodo = (string) ($_POST['metodo_pago'] ?? 'efectivo');
@@ -151,20 +154,19 @@ class PedidoController {
         }
 
         $usuarioId = isset($_SESSION['usuario']['id']) ? (int) $_SESSION['usuario']['id'] : null;
+        $workspaceKey = currentWorkspaceKey();
         $ok = false;
         try {
-            $ok = (new Pedido())->updateFacturaEditable($id, $metodo, $lineasInput, $usuarioId);
+            $ok = (new Pedido())->updateFacturaEditable($id, $metodo, $lineasInput, $usuarioId, $workspaceKey);
         } catch (Throwable $e) {
             $ok = false;
         }
 
         if ($ok) {
-            header('Location: index.php?page=pedido_factura&id=' . $id . '&ok=editado');
-            exit;
+            $this->redirect('index.php?page=pedido_factura&id=' . $id . '&ok=editado');
         }
 
-        header('Location: index.php?page=pedido_factura&id=' . $id . '&edit=1&error=bloqueada');
-        exit;
+        $this->redirect('index.php?page=pedido_factura&id=' . $id . '&edit=1&error=bloqueada');
     }
 
     /**
@@ -173,23 +175,21 @@ class PedidoController {
     public function marcarRealizado(): void {
         $this->requireAuth();
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
-            header('Location: index.php?page=pedidos&error=csrf');
-            exit;
+            $this->redirect('index.php?page=pedidos&error=csrf');
         }
         $id = (int) ($_POST['id'] ?? 0);
         if ($id < 1) {
-            header('Location: index.php?page=pedidos');
-            exit;
+            $this->redirect('index.php?page=pedidos');
         }
         $uid = (int) ($_SESSION['usuario']['id'] ?? 0);
+        $workspaceKey = currentWorkspaceKey();
         try {
-            $ok = (new Pedido())->marcarRealizado($id, $uid);
+            $ok = (new Pedido())->marcarRealizado($id, $uid, $workspaceKey);
         } catch (Throwable $e) {
             $ok = false;
         }
         $q = $ok ? 'ok=realizado' : 'error=realizado';
-        header('Location: index.php?page=pedidos&' . $q);
-        exit;
+        $this->redirect('index.php?page=pedidos&' . $q);
     }
 
     /**
@@ -198,13 +198,13 @@ class PedidoController {
     public function historial(): void {
         $this->requireAuth();
         $id = (int) ($_GET['id'] ?? 0);
+        $workspaceKey = currentWorkspaceKey();
         $model = new Pedido();
-        $cab = $model->getById($id);
+        $cab = $model->getById($id, $workspaceKey);
         if (!$cab) {
-            header('Location: index.php?page=pedidos');
-            exit;
+            $this->redirect('index.php?page=pedidos');
         }
-        $eventos = $model->getHistorialByPedidoId($id);
+        $eventos = $model->getHistorialByPedidoId($id, $workspaceKey);
         require __DIR__ . '/../views/pedidos/historial.php';
     }
 
@@ -214,8 +214,9 @@ class PedidoController {
     public function ventas(): void
     {
         $this->requireAuth();
+        $workspaceKey = currentWorkspaceKey();
         $pedido = new Pedido();
-        $resumenMensual = $pedido->getResumenMensualVentasHistorico(36);
+        $resumenMensual = $pedido->getResumenMensualVentasHistorico(36, $workspaceKey);
 
         $ymActual = date('Y-m');
         $ymMin = date('Y-m', strtotime('-35 months'));
@@ -247,7 +248,7 @@ class PedidoController {
         $puedePrev = $ym > $ymMin;
         $puedeNext = $ym < $ymActual;
 
-        $detalleVentas = $pedido->getVentasDetallePorMes($year, $month);
+        $detalleVentas = $pedido->getVentasDetallePorMes($year, $month, $workspaceKey);
         $totalMes = 0.0;
         foreach ($detalleVentas as $row) {
             $totalMes += (float) ($row['total'] ?? 0);
@@ -264,6 +265,7 @@ class PedidoController {
     public function facturacion(): void
     {
         $this->requireAuth();
+        $workspaceKey = currentWorkspaceKey();
         $estadoFactura = (string) ($_GET['estado_factura'] ?? 'todos');
         if (!in_array($estadoFactura, ['todos', 'pendiente', 'realizada'], true)) {
             $estadoFactura = 'todos';
@@ -282,7 +284,7 @@ class PedidoController {
         }
 
         $pedido = new Pedido();
-        $facturas = $pedido->getFacturasHistorial($estadoFactura, $ym);
+        $facturas = $pedido->getFacturasHistorial($estadoFactura, $ym, $workspaceKey);
         require __DIR__ . '/../views/pedidos/facturacion.php';
     }
 }

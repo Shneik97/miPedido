@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/../../config/database.php';
 
+/**
+ * Modelo de usuarios.
+ * Nivel estudiante:
+ * - Gestiona login, perfil, rol, permisos y datos de configuracion.
+ * - No pinta vistas; solo consulta/actualiza base de datos.
+ */
 class Usuario {
     private $conn;
     private $table = 'usuarios';
@@ -10,17 +16,25 @@ class Usuario {
         $this->conn = $database->connect();
     }
 
-    public function getAll(): array {
-        $sql = 'SELECT id, nombre, email, rol FROM ' . $this->table . ' ORDER BY nombre ASC';
+    public function getAll(string $workspaceKey = ''): array {
+        $sql = 'SELECT id, nombre, email, rol, workspace_key, onboarding_version
+                FROM ' . $this->table . '
+                WHERE (:ws = \'\' OR workspace_key = :ws)
+                ORDER BY nombre ASC';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([':ws' => $workspaceKey]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getById(int $id): ?array {
-        $sql = 'SELECT id, nombre, email, rol, preferencias_ui FROM ' . $this->table . ' WHERE id = :id';
+    public function getById(int $id, string $workspaceKey = ''): ?array {
+        $sql = 'SELECT id, nombre, email, rol, workspace_key, onboarding_version,
+                       email_verificado, plan_actual, plan_elegido_at, plan_cambiado_at,
+                       preferencias_ui
+                FROM ' . $this->table . '
+                WHERE id = :id
+                  AND (:ws = \'\' OR workspace_key = :ws)';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':id' => $id]);
+        $stmt->execute([':id' => $id, ':ws' => $workspaceKey]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
@@ -31,6 +45,18 @@ class Usuario {
         $stmt->execute([':email' => $email]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    public function updatePasswordByEmail(string $email, string $newPasswordPlain): bool
+    {
+        $hash = password_hash($newPasswordPlain, PASSWORD_DEFAULT);
+        $sql = 'UPDATE ' . $this->table . ' SET password = :password WHERE email = :email';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':password' => $hash,
+            ':email' => $email,
+        ]);
+        return $stmt->rowCount() > 0;
     }
 
     public function emailExists(string $email, ?int $exceptId = null): bool {
@@ -45,30 +71,31 @@ class Usuario {
         return (int) $stmt->fetchColumn() > 0;
     }
 
-    public function countAdmins(): int {
-        $sql = 'SELECT COUNT(*) FROM ' . $this->table . " WHERE rol = 'admin'";
+    public function countAdmins(string $workspaceKey = ''): int {
+        $sql = 'SELECT COUNT(*) FROM ' . $this->table . " WHERE rol = 'admin' AND (:ws = '' OR workspace_key = :ws)";
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([':ws' => $workspaceKey]);
         return (int) $stmt->fetchColumn();
     }
 
-    public function create(string $nombre, string $email, string $passwordPlain, string $rol): int {
+    public function create(string $nombre, string $email, string $passwordPlain, string $rol, ?string $workspaceKey = null): int {
         $hash = password_hash($passwordPlain, PASSWORD_DEFAULT);
-        $sql = 'INSERT INTO ' . $this->table . ' (nombre, email, password, rol) VALUES (:nombre, :email, :password, :rol)';
+        $sql = 'INSERT INTO ' . $this->table . ' (nombre, email, password, rol, workspace_key) VALUES (:nombre, :email, :password, :rol, :workspace_key)';
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([
             ':nombre' => $nombre,
             ':email' => $email,
             ':password' => $hash,
             ':rol' => $rol,
+            ':workspace_key' => $workspaceKey,
         ]);
         return (int) $this->conn->lastInsertId();
     }
 
-    public function update(int $id, string $nombre, string $email, string $rol, ?string $newPasswordPlain = null): void {
+    public function update(int $id, string $nombre, string $email, string $rol, ?string $newPasswordPlain = null, string $workspaceKey = ''): void {
         if ($newPasswordPlain !== null && $newPasswordPlain !== '') {
             $hash = password_hash($newPasswordPlain, PASSWORD_DEFAULT);
-            $sql = 'UPDATE ' . $this->table . ' SET nombre = :nombre, email = :email, rol = :rol, password = :password WHERE id = :id';
+            $sql = 'UPDATE ' . $this->table . ' SET nombre = :nombre, email = :email, rol = :rol, password = :password WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws)';
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
                 ':nombre' => $nombre,
@@ -76,16 +103,18 @@ class Usuario {
                 ':rol' => $rol,
                 ':password' => $hash,
                 ':id' => $id,
+                ':ws' => $workspaceKey,
             ]);
             return;
         }
-        $sql = 'UPDATE ' . $this->table . ' SET nombre = :nombre, email = :email, rol = :rol WHERE id = :id';
+        $sql = 'UPDATE ' . $this->table . ' SET nombre = :nombre, email = :email, rol = :rol WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws)';
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([
             ':nombre' => $nombre,
             ':email' => $email,
             ':rol' => $rol,
             ':id' => $id,
+            ':ws' => $workspaceKey,
         ]);
     }
 
@@ -174,10 +203,10 @@ class Usuario {
         }
     }
 
-    public function delete(int $id): bool {
-        $sql = 'DELETE FROM ' . $this->table . ' WHERE id = :id';
+    public function delete(int $id, string $workspaceKey = ''): bool {
+        $sql = 'DELETE FROM ' . $this->table . ' WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws)';
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([':id' => $id]);
+        return $stmt->execute([':id' => $id, ':ws' => $workspaceKey]);
     }
 
     public function updatePreferenciasUi(int $id, array $preferencias): void {
@@ -191,9 +220,12 @@ class Usuario {
 
     /**
      * Datos mínimos para autenticación y control anti-fuerza-bruta.
+     * Ejemplo:
+     * - getForLoginByEmail('ana@demo.com') -> ['id'=>..,'password'=>..,'failed_login_count'=>..]
      */
     public function getForLoginByEmail(string $email): ?array {
-        $sql = 'SELECT id, nombre, email, password, rol, preferencias_ui,
+        $sql = 'SELECT id, nombre, email, password, rol, workspace_key, onboarding_version,
+                       plan_actual, plan_elegido_at, plan_cambiado_at, preferencias_ui,
                        failed_login_count, failed_login_stage, login_blocked_until
                 FROM ' . $this->table . '
                 WHERE email = :email
@@ -206,6 +238,7 @@ class Usuario {
 
     /**
      * Limpia bloqueos/contador cuando el login es correcto.
+     * Idea: cada login bueno "resetea" intentos fallidos.
      */
     public function clearLoginSecurity(int $id): void {
         $sql = 'UPDATE ' . $this->table . '
@@ -223,6 +256,8 @@ class Usuario {
      * - stage 1 => bloqueo 24 h, después vuelve a stage 0
      *
      * @return array{locked:bool, lockType:string, blockedUntil:?string}
+     * Ejemplo:
+     * - Quinto intento malo -> ['locked'=>true,'lockType'=>'15m',...]
      */
     public function registerFailedLogin(int $id): array {
         $sqlSel = 'SELECT failed_login_count, failed_login_stage
@@ -272,6 +307,8 @@ class Usuario {
 
     /**
      * Comprueba si el usuario sigue bloqueado en este momento.
+     * Ejemplo:
+     * - login_blocked_until en el futuro -> true
      */
     public function isLoginBlocked(array $userRow): bool {
         $blockedUntil = trim((string) ($userRow['login_blocked_until'] ?? ''));
@@ -283,5 +320,119 @@ class Usuario {
             return false;
         }
         return $ts > time();
+    }
+
+    /**
+     * Marca el tutorial de onboarding como completado para un usuario.
+     * Ejemplo:
+     * - markOnboardingCompleted(12, 1)
+     */
+    public function markOnboardingCompleted(int $id, int $version = 1): void
+    {
+        if ($version < 1) {
+            $version = 1;
+        }
+        $sql = 'UPDATE ' . $this->table . ' SET onboarding_version = :version WHERE id = :id';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':version' => $version,
+            ':id' => $id,
+        ]);
+    }
+
+    public function setWorkspaceKey(int $id, string $workspaceKey, string $scopeWorkspaceKey = ''): void
+    {
+        $sql = 'UPDATE ' . $this->table . '
+                SET workspace_key = :new_ws
+                WHERE id = :id
+                  AND (:scope_ws = \'\' OR workspace_key = :scope_ws)';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':new_ws' => $workspaceKey,
+            ':id' => $id,
+            ':scope_ws' => $scopeWorkspaceKey,
+        ]);
+    }
+
+    public function markEmailVerified(int $id): void
+    {
+        $sql = 'UPDATE ' . $this->table . ' SET email_verificado = 1 WHERE id = :id';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':id' => $id]);
+    }
+
+    /**
+     * Asigna plan inicial solo una vez (si aun no tenia plan).
+     * Ejemplo:
+     * - setPlanInicial(12, 'profesional')
+     */
+    public function setPlanInicial(int $id, string $plan): void
+    {
+        $allowed = ['basico', 'profesional', 'avanzado'];
+        if (!in_array($plan, $allowed, true)) {
+            $plan = 'basico';
+        }
+        $sql = 'UPDATE ' . $this->table . '
+                SET plan_actual = :plan,
+                    plan_elegido_at = NOW(),
+                    plan_cambiado_at = NOW()
+                WHERE id = :id
+                  AND (plan_actual IS NULL OR plan_actual = \'\')';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':plan' => $plan,
+            ':id' => $id,
+        ]);
+    }
+
+    /**
+     * Regla de demo: solo permite cambiar plan cada 30 dias.
+     * Ejemplo:
+     * - canChangePlanNow(12) -> true/false
+     */
+    public function canChangePlanNow(int $id): bool
+    {
+        $sql = 'SELECT plan_cambiado_at FROM ' . $this->table . ' WHERE id = :id LIMIT 1';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return false;
+        }
+        $last = trim((string) ($row['plan_cambiado_at'] ?? ''));
+        if ($last === '') {
+            return true;
+        }
+        $lastTs = strtotime($last);
+        if ($lastTs === false) {
+            return true;
+        }
+        return (time() - $lastTs) >= (30 * 24 * 60 * 60);
+    }
+
+    /**
+     * Cambia plan si es valido y si cumple ventana de 30 dias.
+     * Ejemplo:
+     * - updatePlan(12, 'avanzado') -> true/false
+     */
+    public function updatePlan(int $id, string $plan): bool
+    {
+        $allowed = ['basico', 'profesional', 'avanzado'];
+        if (!in_array($plan, $allowed, true)) {
+            return false;
+        }
+        if (!$this->canChangePlanNow($id)) {
+            return false;
+        }
+        $sql = 'UPDATE ' . $this->table . '
+                SET plan_actual = :plan,
+                    plan_cambiado_at = NOW()
+                WHERE id = :id';
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':plan' => $plan,
+            ':id' => $id,
+        ]);
+        return $stmt->rowCount() > 0;
     }
 }

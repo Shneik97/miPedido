@@ -2,6 +2,7 @@
 /**
  * Calendario mensual: rejilla L–D; tareas del jefe (asignadas) y personales (es_personal).
  * Variables desde CalendarioController: $year, $month, $semanas, $porDia, $ymAnterior, $ymSiguiente, $calendarioDbError, $isAdmin (layout).
+ * Nivel estudiante: se dibuja por semanas; cada celda representa un dia.
  */
 $pageTitle = 'Calendario';
 $currentNav = 'calendario';
@@ -91,6 +92,7 @@ ob_start();
                     <div class="cal-grid mb-2">
                         <?php foreach ($semana as $dt): ?>
                             <?php
+                            // Cada celda sabe si pertenece al mes actual y si es el dia de hoy.
                             $ymd = $dt->format('Y-m-d');
                             $esMesActual = ((int) $dt->format('n') === $month && (int) $dt->format('Y') === $year);
                             $claseCelda = 'cal-cell' . ($esMesActual ? '' : ' otro-mes') . ($ymd === $hoyYmd ? ' hoy' : '');
@@ -100,6 +102,7 @@ ob_start();
                                 <div class="cal-dia-num"><?= (int) $dt->format('j') ?></div>
                                 <?php foreach ($lista as $tar): ?>
                                     <?php
+                                    // Badge "Propia/Asignada" + color segun estado de tarea.
                                     $esPropia = !empty($tar['es_personal']);
                                     $badgeClass = $esPropia ? 'text-bg-secondary' : 'text-bg-primary';
                                     $est = (string) ($tar['estado'] ?? '');

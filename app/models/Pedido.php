@@ -1,6 +1,9 @@
 <?php
 /**
  * Modelo de pedidos: consultas, alta con detalle/stock, cierre "realizado" e historial auditable.
+ * Nivel estudiante:
+ * - Este es el modelo mas completo porque junta ventas, factura e historial.
+ * - Cuando hay varias escrituras, se usa transaccion para evitar datos a medias.
  */
 require_once __DIR__ . '/../../config/database.php';
 
@@ -13,10 +16,10 @@ class Pedido {
         $this->conn = $database->connect();
     }
 
-    public function countPendientes(): int {
-        $sql = 'SELECT COUNT(*) FROM ' . $this->table . " WHERE estado = 'pendiente'";
+    public function countPendientes(string $workspaceKey = ''): int {
+        $sql = 'SELECT COUNT(*) FROM ' . $this->table . " WHERE estado = 'pendiente' AND (:ws = '' OR workspace_key = :ws)";
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([':ws' => $workspaceKey]);
         return (int) $stmt->fetchColumn();
     }
 
@@ -25,8 +28,10 @@ class Pedido {
      * - $meses: ancho del bloque (en este proyecto usamos 6).
      * - $offsetMeses: cuántos meses retroceder desde el mes actual (0, 6, 12...).
      * Meses sin ventas devuelven 0.
+     * Ejemplo:
+     * - getVentasTotalesPorMes(6, 0, 'ws_demo') -> ['labels'=>['Dic 2025',...], 'data'=>[120.5,...]]
      */
-    public function getVentasTotalesPorMes(int $meses = 6, int $offsetMeses = 0): array {
+    public function getVentasTotalesPorMes(int $meses = 6, int $offsetMeses = 0, string $workspaceKey = ''): array {
         if ($meses < 1) {
             return ['labels' => [], 'data' => []];
         }
@@ -62,9 +67,10 @@ class Pedido {
                 INNER JOIN detalle_pedidos d ON d.pedido_id = p.id
                 WHERE p.fecha >= :desde
                   AND p.fecha < :hasta
+                  AND (:ws = \'\' OR p.workspace_key = :ws)
                 GROUP BY ym';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':desde' => $desde, ':hasta' => $hasta]);
+        $stmt->execute([':desde' => $desde, ':hasta' => $hasta, ':ws' => $workspaceKey]);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $ym = (string) $row['ym'];
             if (array_key_exists($ym, $totals)) {
@@ -80,8 +86,10 @@ class Pedido {
 
     /**
      * Top productos más vendidos (por unidades) dentro del mismo bloque temporal del gráfico.
+     * Ejemplo:
+     * - getProductosMasVendidos(5, 6, 0, 'ws_demo') -> [ ['producto_nombre'=>'Pan',...], ... ]
      */
-    public function getProductosMasVendidos(int $limite = 5, int $meses = 6, int $offsetMeses = 0): array
+    public function getProductosMasVendidos(int $limite = 5, int $meses = 6, int $offsetMeses = 0, string $workspaceKey = ''): array
     {
         if ($limite < 1) {
             $limite = 5;
@@ -109,6 +117,7 @@ class Pedido {
                 INNER JOIN productos pr ON pr.id = d.producto_id
                 WHERE p.fecha >= :desde
                   AND p.fecha < :hasta
+                  AND (:ws = \'\' OR p.workspace_key = :ws)
                 GROUP BY pr.id, pr.nombre
                 ORDER BY unidades_vendidas DESC, total_facturado DESC
                 LIMIT ' . (int) $limite;
@@ -117,6 +126,7 @@ class Pedido {
         $stmt->execute([
             ':desde' => $desde,
             ':hasta' => $hasta,
+            ':ws' => $workspaceKey,
         ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -125,7 +135,7 @@ class Pedido {
      * Etiquetas y conteos por estado solo para tramos con COUNT > 0 (gráfico circular).
      * Incluye el estado terminal "realizado" (pedido confirmado/cerrado).
      */
-    public function getDistribucionEstadosGrafico(): array {
+    public function getDistribucionEstadosGrafico(string $workspaceKey = ''): array {
         $orden = ['pendiente', 'en_proceso', 'enviado', 'entregado', 'cancelado', 'realizado'];
         $etiquetas = [
             'pendiente' => 'Pendiente',
@@ -135,9 +145,9 @@ class Pedido {
             'cancelado' => 'Cancelado',
             'realizado' => 'Realizado',
         ];
-        $sql = 'SELECT estado, COUNT(*) AS n FROM ' . $this->table . ' GROUP BY estado';
+        $sql = 'SELECT estado, COUNT(*) AS n FROM ' . $this->table . ' WHERE (:ws = \'\' OR workspace_key = :ws) GROUP BY estado';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([':ws' => $workspaceKey]);
         $porEstado = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $porEstado[(string) $row['estado']] = (int) $row['n'];
@@ -157,39 +167,58 @@ class Pedido {
     /**
      * Listado con cliente, total, método de pago, fecha de cierre y teléfono (para enlaces WhatsApp).
      */
-    public function getAllResumen(): array {
+    public function getAllResumen(string $workspaceKey = ''): array {
         $sql = 'SELECT p.id, p.cliente_id, p.fecha, p.estado, p.metodo_pago, p.fecha_realizado,
                        c.nombre AS cliente_nombre, c.telefono AS cliente_telefono,
                        (SELECT COALESCE(SUM(d.cantidad * d.precio_unitario), 0)
                         FROM detalle_pedidos d WHERE d.pedido_id = p.id) AS total
                 FROM ' . $this->table . ' p
                 INNER JOIN clientes c ON c.id = p.cliente_id
+                WHERE (:ws = \'\' OR p.workspace_key = :ws)
                 ORDER BY p.fecha DESC, p.id DESC';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
+        $stmt->execute([':ws' => $workspaceKey]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
      * Crea pedido con una línea de detalle y descuenta stock.
      * Si $creadoPorUsuarioId no es null, registra fila en pedido_historial (trazabilidad del alta).
+     * Ejemplo:
+     * - createWithDetalle(1, 3, 2, 'tarjeta', 9.99, 7, 'ws_demo') -> id nuevo de pedido.
      */
-    public function createWithDetalle(int $clienteId, int $productoId, int $cantidad, string $metodoPago, float $precioUnitario, ?int $creadoPorUsuarioId = null): int {
+    public function createWithDetalle(int $clienteId, int $productoId, int $cantidad, string $metodoPago, float $precioUnitario, ?int $creadoPorUsuarioId = null, string $workspaceKey = ''): int {
         if ($cantidad < 1) {
             throw new InvalidArgumentException('La cantidad debe ser al menos 1.');
         }
 
+        // Transacción: si algo falla, no se guarda ni pedido ni descuento de stock.
         $this->conn->beginTransaction();
         try {
-            $sqlP = 'INSERT INTO ' . $this->table . ' (cliente_id, estado, metodo_pago)
-                     VALUES (:cliente_id, \'pendiente\', :metodo_pago)';
+            // 1) Validamos que el cliente pertenezca al mismo workspace.
+            $chkCliente = $this->conn->prepare(
+                'SELECT id FROM clientes WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws) LIMIT 1'
+            );
+            $chkCliente->execute([
+                ':id' => $clienteId,
+                ':ws' => $workspaceKey,
+            ]);
+            if (!$chkCliente->fetch(PDO::FETCH_ASSOC)) {
+                throw new RuntimeException('Cliente no disponible en tu entorno.');
+            }
+
+            // 2) Creamos cabecera de pedido.
+            $sqlP = 'INSERT INTO ' . $this->table . ' (cliente_id, estado, metodo_pago, workspace_key)
+                     VALUES (:cliente_id, \'pendiente\', :metodo_pago, :workspace_key)';
             $st = $this->conn->prepare($sqlP);
             $st->execute([
                 ':cliente_id' => $clienteId,
                 ':metodo_pago' => $metodoPago,
+                ':workspace_key' => $workspaceKey !== '' ? $workspaceKey : null,
             ]);
             $pedidoId = (int) $this->conn->lastInsertId();
 
+            // 3) Insertamos detalle (línea de producto).
             $sqlD = 'INSERT INTO detalle_pedidos (pedido_id, producto_id, cantidad, precio_unitario)
                      VALUES (:pedido_id, :producto_id, :cantidad, :precio_unitario)';
             $stD = $this->conn->prepare($sqlD);
@@ -200,16 +229,19 @@ class Pedido {
                 ':precio_unitario' => $precioUnitario,
             ]);
 
-            $sqlStock = 'UPDATE productos SET stock = stock - :q WHERE id = :id AND stock >= :q2';
+            // 4) Descontamos stock con control de mínimo (evita stock negativo).
+            $sqlStock = 'UPDATE productos SET stock = stock - :q WHERE id = :id AND stock >= :q2 AND (:ws = \'\' OR workspace_key = :ws)';
             $stS = $this->conn->prepare($sqlStock);
             $stS->bindValue(':q', $cantidad, PDO::PARAM_INT);
             $stS->bindValue(':id', $productoId, PDO::PARAM_INT);
             $stS->bindValue(':q2', $cantidad, PDO::PARAM_INT);
+            $stS->bindValue(':ws', $workspaceKey, PDO::PARAM_STR);
             $stS->execute();
             if ($stS->rowCount() === 0) {
                 throw new RuntimeException('Stock insuficiente para este producto.');
             }
 
+            // 5) Guardamos evento en historial si tenemos usuario.
             if ($creadoPorUsuarioId !== null) {
                 $this->insertHistorialPedido($pedidoId, $creadoPorUsuarioId, 'pedido_creado', 'Pedido registrado en el sistema.');
             }
@@ -225,12 +257,15 @@ class Pedido {
     /**
      * Marca el pedido como realizado y fija fecha_realizado. No aplica si ya está cancelado o realizado.
      * Admin y empleado pueden invocar (la restricción de rol va en el controlador si se desea cambiar).
+     * Ejemplo:
+     * - marcarRealizado(15, 2, 'ws_demo') -> true/false
      */
-    public function marcarRealizado(int $pedidoId, int $usuarioId): bool {
+    public function marcarRealizado(int $pedidoId, int $usuarioId, string $workspaceKey = ''): bool {
+        // Transacción corta: bloquear fila -> validar estado -> actualizar -> guardar historial.
         $this->conn->beginTransaction();
         try {
-            $sel = $this->conn->prepare('SELECT estado FROM ' . $this->table . ' WHERE id = :id FOR UPDATE');
-            $sel->execute([':id' => $pedidoId]);
+            $sel = $this->conn->prepare('SELECT estado FROM ' . $this->table . ' WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws) FOR UPDATE');
+            $sel->execute([':id' => $pedidoId, ':ws' => $workspaceKey]);
             $row = $sel->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
                 $this->conn->rollBack();
@@ -279,54 +314,62 @@ class Pedido {
     /**
      * Línea de tiempo de un pedido para la vista de historial.
      */
-    public function getHistorialByPedidoId(int $pedidoId): array {
+    public function getHistorialByPedidoId(int $pedidoId, string $workspaceKey = ''): array {
         $sql = 'SELECT h.id, h.pedido_id, h.usuario_id, h.accion, h.detalle, h.fecha,
                        u.nombre AS usuario_nombre
                 FROM pedido_historial h
                 LEFT JOIN usuarios u ON u.id = h.usuario_id
+                INNER JOIN pedidos p ON p.id = h.pedido_id
                 WHERE h.pedido_id = :pid
+                  AND (:ws = \'\' OR p.workspace_key = :ws)
                 ORDER BY h.fecha ASC, h.id ASC';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':pid' => $pedidoId]);
+        $stmt->execute([':pid' => $pedidoId, ':ws' => $workspaceKey]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function getById(int $id): ?array {
+    public function getById(int $id, string $workspaceKey = ''): ?array {
         $sql = 'SELECT p.*, c.nombre AS cliente_nombre, c.email AS cliente_email, c.telefono AS cliente_telefono, c.direccion AS cliente_direccion
                 FROM ' . $this->table . ' p
                 INNER JOIN clientes c ON c.id = p.cliente_id
-                WHERE p.id = :id';
+                WHERE p.id = :id
+                  AND (:ws = \'\' OR p.workspace_key = :ws)';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':id' => $id]);
+        $stmt->execute([':id' => $id, ':ws' => $workspaceKey]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
     }
 
-    public function getLineasFactura(int $pedidoId): array {
+    public function getLineasFactura(int $pedidoId, string $workspaceKey = ''): array {
         $sql = 'SELECT d.id, d.producto_id, d.cantidad, d.precio_unitario, pr.nombre AS producto_nombre
                 FROM detalle_pedidos d
                 INNER JOIN productos pr ON pr.id = d.producto_id
-                WHERE d.pedido_id = :pid';
+                INNER JOIN pedidos p ON p.id = d.pedido_id
+                WHERE d.pedido_id = :pid
+                  AND (:ws = \'\' OR p.workspace_key = :ws)';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':pid' => $pedidoId]);
+        $stmt->execute([':pid' => $pedidoId, ':ws' => $workspaceKey]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
      * Permite editar datos de factura solo si el pedido no está realizado.
      * Devuelve false cuando el pedido ya está cerrado o no existe.
+     * Ejemplo:
+     * - updateFacturaEditable(10, 'efectivo', [23=>['cantidad'=>2,'precio_unitario'=>4.5]], 2, 'ws_demo')
      */
-    public function updateFacturaEditable(int $pedidoId, string $metodoPago, array $lineasInput, ?int $usuarioId = null): bool
+    public function updateFacturaEditable(int $pedidoId, string $metodoPago, array $lineasInput, ?int $usuarioId = null, string $workspaceKey = ''): bool
     {
         $allowed = ['efectivo', 'tarjeta', 'transferencia'];
         if (!in_array($metodoPago, $allowed, true)) {
             $metodoPago = 'efectivo';
         }
 
+        // Transacción: evita que se mezclen cambios parciales en la factura.
         $this->conn->beginTransaction();
         try {
-            $sel = $this->conn->prepare('SELECT estado FROM ' . $this->table . ' WHERE id = :id FOR UPDATE');
-            $sel->execute([':id' => $pedidoId]);
+            $sel = $this->conn->prepare('SELECT estado FROM ' . $this->table . ' WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws) FOR UPDATE');
+            $sel->execute([':id' => $pedidoId, ':ws' => $workspaceKey]);
             $pedido = $sel->fetch(PDO::FETCH_ASSOC);
             if (!$pedido) {
                 $this->conn->rollBack();
@@ -349,6 +392,7 @@ class Pedido {
                  WHERE id = :linea_id AND pedido_id = :pedido_id'
             );
 
+            // Normalizamos valores por línea para mantener datos consistentes.
             foreach ($lineasInput as $lineaId => $data) {
                 $cantidad = max(1, (int) ($data['cantidad'] ?? 1));
                 $precio = (float) ($data['precio_unitario'] ?? 0);
@@ -382,8 +426,10 @@ class Pedido {
 
     /**
      * Historial mensual de ventas (importe, pedidos y ticket medio) para los últimos N meses.
+     * Ejemplo:
+     * - getResumenMensualVentasHistorico(12, 'ws_demo') -> [ ['ym'=>'2026-04',...], ... ]
      */
-    public function getResumenMensualVentasHistorico(int $meses = 36): array
+    public function getResumenMensualVentasHistorico(int $meses = 36, string $workspaceKey = ''): array
     {
         if ($meses < 1) {
             $meses = 36;
@@ -398,10 +444,11 @@ class Pedido {
                 FROM ' . $this->table . ' p
                 INNER JOIN detalle_pedidos d ON d.pedido_id = p.id
                 WHERE p.fecha >= :desde
+                  AND (:ws = \'\' OR p.workspace_key = :ws)
                 GROUP BY ym
                 ORDER BY ym DESC';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':desde' => $desde]);
+        $stmt->execute([':desde' => $desde, ':ws' => $workspaceKey]);
 
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -419,8 +466,10 @@ class Pedido {
 
     /**
      * Detalle de pedidos vendidos en un mes concreto (YYYY-MM).
+     * Ejemplo:
+     * - getVentasDetallePorMes(2026, 4, 'ws_demo')
      */
-    public function getVentasDetallePorMes(int $year, int $month): array
+    public function getVentasDetallePorMes(int $year, int $month, string $workspaceKey = ''): array
     {
         if ($year < 2000 || $year > 2100) {
             return [];
@@ -439,21 +488,24 @@ class Pedido {
                 INNER JOIN clientes c ON c.id = p.cliente_id
                 INNER JOIN detalle_pedidos d ON d.pedido_id = p.id
                 WHERE p.fecha >= :inicio AND p.fecha < :fin
+                  AND (:ws = \'\' OR p.workspace_key = :ws)
                 GROUP BY p.id, p.fecha, p.estado, p.metodo_pago, p.fecha_realizado, c.nombre
                 ORDER BY p.fecha DESC, p.id DESC';
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':inicio' => $inicio, ':fin' => $fin]);
+        $stmt->execute([':inicio' => $inicio, ':fin' => $fin, ':ws' => $workspaceKey]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**
      * Historial de facturación usando pedidos como origen de factura.
      * estadoFactura: pendiente (pedido no realizado) o realizada (pedido realizado).
+     * Ejemplo:
+     * - getFacturasHistorial('pendiente', '2026-04', 'ws_demo')
      */
-    public function getFacturasHistorial(string $estadoFactura = 'todos', ?string $ym = null): array
+    public function getFacturasHistorial(string $estadoFactura = 'todos', ?string $ym = null, string $workspaceKey = ''): array
     {
         $filtro = '';
-        $params = [];
+        $params = [':ws' => $workspaceKey];
         if ($estadoFactura === 'realizada') {
             $filtro = " AND p.estado = 'realizado'";
         } elseif ($estadoFactura === 'pendiente') {
@@ -479,6 +531,7 @@ class Pedido {
                 INNER JOIN clientes c ON c.id = p.cliente_id
                 INNER JOIN detalle_pedidos d ON d.pedido_id = p.id
                 WHERE 1=1 ' . $filtro . '
+                  AND (:ws = \'\' OR p.workspace_key = :ws)
                 GROUP BY p.id, p.fecha, p.estado, p.metodo_pago, p.fecha_realizado, c.nombre, c.email
                 ORDER BY p.fecha DESC, p.id DESC
                 LIMIT 300';
@@ -491,12 +544,19 @@ class Pedido {
      * Elimina pedido:
      * - Si está realizado, no permite borrado.
      * - Si no está realizado, repone stock y luego borra el pedido.
+     * Ejemplo:
+     * - delete(21, 'ws_demo') -> true/false
      */
-    public function delete(int $id): bool {
+    public function delete(int $id, string $workspaceKey = ''): bool {
+        // Flujo de borrado seguro:
+        // 1) bloquear pedido
+        // 2) impedir si está realizado
+        // 3) reponer stock
+        // 4) borrar pedido
         $this->conn->beginTransaction();
         try {
-            $sel = $this->conn->prepare('SELECT estado FROM ' . $this->table . ' WHERE id = :id FOR UPDATE');
-            $sel->execute([':id' => $id]);
+            $sel = $this->conn->prepare('SELECT estado FROM ' . $this->table . ' WHERE id = :id AND (:ws = \'\' OR workspace_key = :ws) FOR UPDATE');
+            $sel->execute([':id' => $id, ':ws' => $workspaceKey]);
             $pedido = $sel->fetch(PDO::FETCH_ASSOC);
             if (!$pedido) {
                 $this->conn->rollBack();
@@ -511,11 +571,12 @@ class Pedido {
             $lineas->execute([':id' => $id]);
             $rows = $lineas->fetchAll(PDO::FETCH_ASSOC);
 
-            $updStock = $this->conn->prepare('UPDATE productos SET stock = stock + :cantidad WHERE id = :producto_id');
+            $updStock = $this->conn->prepare('UPDATE productos SET stock = stock + :cantidad WHERE id = :producto_id AND (:ws = \'\' OR workspace_key = :ws)');
             foreach ($rows as $row) {
                 $updStock->execute([
                     ':cantidad' => (int) ($row['cantidad'] ?? 0),
                     ':producto_id' => (int) ($row['producto_id'] ?? 0),
+                    ':ws' => $workspaceKey,
                 ]);
             }
 

@@ -44,12 +44,13 @@ ob_start();
                                     </a>
                                     <?php endif; ?>
                                     <?php if (!empty($isAdmin)): ?>
-                                    <a href="index.php?page=productos_delete&id=<?= (int) $row['id'] ?>"
-                                       class="btn btn-sm btn-outline-danger js-confirm-delete"
-                                       title="Eliminar"
-                                       data-confirm-message="¿Eliminar este producto?">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </a>
+                                    <form method="post" action="index.php?page=productos_delete" class="d-inline js-confirm-delete" data-confirm-message="¿Eliminar este producto?">
+                                        <?= csrfInput() ?>
+                                        <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
                                     <?php endif; ?>
                                 </td>
                             </tr>

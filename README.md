@@ -39,6 +39,26 @@ Abre en el navegador: **http://localhost:8000/** o **http://localhost:8000/index
 
 Credenciales por defecto alineadas con `config/database.php` y Docker: usuario `root`, contraseña `root`, base de datos `mipedido`, host `127.0.0.1` y puerto **3307**.
 
+Guía corta de uso SQL:
+- `config/README_SQL.md`
+- Instalación limpia: `config/database.sql`
+- Base antigua: migraciones `fase4` a `fase12`
+
+Guía de despliegue a internet (Railway):
+- `docs/Despliegue.md`
+
+### Mapa rápido de `config/` (nivel estudiante)
+
+- `config/database.php`: conexión de PHP a MySQL (host, puerto, usuario, clave y base de datos).
+- `config/database.sql`: punto de inicio para instalación nueva (crea tablas y datos base).
+- `config/migrate_fase4_...sql` a `config/migrate_fase12_...sql`: actualizaciones por fases para bases antiguas.
+- `config/README_SQL.md`: guía paso a paso de qué script ejecutar según tu caso.
+
+Flujo recomendado:
+1. Si empiezas de cero, ejecuta solo `config/database.sql`.
+2. Si ya tenías base antigua, ejecuta migraciones en orden (`fase4` -> `fase12`).
+3. Abre la app y valida login + dashboard + configuración.
+
 ## Mejoras fase 4 (pedidos realizado, historial, tareas, WhatsApp)
 
 - Esquema actualizado en `config/database.sql` (instalaciones nuevas / volumen Docker limpio).
@@ -49,7 +69,12 @@ Credenciales por defecto alineadas con `config/database.php` y Docker: usuario `
 - Preferencias de interfaz (**Mi entorno**): si la base ya existía, ejecuta **`config/migrate_fase6_preferencias_ui.sql`** una vez.
 - Seguridad (bloqueo login + CSRF): si la base ya existía, ejecuta **`config/migrate_fase7_seguridad_login_csrf_sesion.sql`** una vez.
 - Permisos finos por usuario (admin): si la base ya existía, ejecuta **`config/migrate_fase8_permisos_usuarios.sql`** una vez.
+- Onboarding admin (solo primera vez): si la base ya existía, ejecuta **`config/migrate_fase9_onboarding_admin.sql`** una vez.
+- Aislamiento por workspace (admin limpio + empleado ligado): si la base ya existía, ejecuta **`config/migrate_fase10_workspace_aislamiento.sql`** una vez.
+- Verificación de correo simulada (enfoque junior): si la base ya existía, ejecuta **`config/migrate_fase11_verificacion_correo.sql`** una vez.
+- Planes de admin simulados (fase 12): si la base ya existía, ejecuta **`config/migrate_fase12_planes_usuario.sql`** una vez.
 - El documento del TFG incluye **fases 4 a 6** y las mejoras de cabecera/avisos: [docs/TFG_mejoras_pedidos_tareas_whatsapp.md](docs/TFG_mejoras_pedidos_tareas_whatsapp.md).
+- Limpieza SQL aplicada: se retiraron scripts de parche antiguos para dejar un flujo claro (instalación limpia + migraciones por fase).
 
 ## Checklist de defensa (demo rápida 10-15 min)
 
@@ -252,3 +277,60 @@ Se aplicaron ajustes para que el comportamiento sea consistente con el estado de
 - **Facturación (UI)**:
   - botón editar abre en pestaña nueva.
   - botón de revertir/reemitir eliminado del listado.
+
+## Onboarding admin (fase 9)
+
+- Al entrar al `dashboard`, un usuario con rol `admin` y `onboarding_version = 0` ve una guía breve con globos.
+- La guía se marca como completada al finalizar y no vuelve a mostrarse en siguientes inicios de sesión.
+- Se usa `onboarding_version` (en lugar de un simple sí/no) para poder lanzar mini-tutoriales futuros por versión.
+- Para volver a mostrar la guía a admins existentes:
+  - `UPDATE usuarios SET onboarding_version = 0 WHERE rol = 'admin';`
+
+### Nota sobre entorno limpio de cuentas nuevas
+
+- Se añadió `workspace_key` en `usuarios` para preparar aislamiento por cuenta en una fase posterior.
+- Recomendación: activar aislamiento total por `workspace_key` en clientes/productos/pedidos/tareas cuando quieras separar datos por empresa/tenant (mejora mayor, no incluida en esta fase para mantener compatibilidad).
+
+## Aislamiento por workspace (fase 10)
+
+- Cada cuenta admin opera en su propio `workspace_key`.
+- Los empleados creados por un admin heredan su mismo workspace y ven sus mismos datos.
+- Los listados y operaciones de clientes, productos, pedidos, ventas, facturación, tareas y dashboard quedan filtrados por workspace.
+- Para bases antiguas, la migración fase 10 realiza backfill de filas existentes al workspace legado para no romper visibilidad histórica.
+
+## Verificación de correo (fase 11, simulada)
+
+- En `Configuración`, al lado de `Rol`, aparece un botón **Verificar correo** si la cuenta no está verificada.
+- En esta versión TFG (enfoque junior), la verificación es **simulada**:
+  - no envía correo real,
+  - no usa OTP,
+  - al pulsar el botón marca la cuenta como verificada.
+- Una vez marcada, se muestra **Cuenta Verificada** y no vuelve a pedir acción.
+
+## Selección de plan admin (fase 12, simulada)
+
+- Cuando un admin inicia sesión por primera vez y no tiene plan, se redirige a `index.php?page=plan_select`.
+- Elige entre `Básico`, `Profesional` o `Avanzado` usando un modal de simulación.
+- Seguridad de demo:
+  - se piden solo datos mock (nombre, DNI simple, email de facturación, últimos 4 dígitos y caducidad),
+  - **nunca** se guarda tarjeta completa,
+  - mensaje visible: **"simulación académica, no se procesa ningún pago real"**.
+- En `Configuración`, el admin ve su plan actual y puede cambiarlo con límite de **una vez cada 30 días** (simulado).
+
+## Nota de enfoque (nivel junior)
+
+- El proyecto está orientado a presentación académica: se prioriza simplicidad de implementación y explicación.
+- Se evita sobre-ingeniería cuando no aporta valor directo a la demo.
+- Si una parte avanzada puede complicar mantenimiento o exposición oral, se sustituye por versión simple y estable.
+
+## Incidencias reales y solución rápida
+
+- **Error SQL 1064 con `ADD COLUMN IF NOT EXISTS`** en MySQL Workbench:
+  - causa: versión/config de MySQL sin soporte completo para esa sintaxis.
+  - solución: migraciones reescritas con `INFORMATION_SCHEMA` + `PREPARE/EXECUTE`.
+- **Error SQL 1054 (`Unknown column 'workspace_key'`)**:
+  - causa: código actualizado sin ejecutar migración correspondiente.
+  - solución: ejecutar fase 9/10 según el caso y volver a entrar.
+- **Auth0 token no recibido**:
+  - causas detectadas: dominio incorrecto y extensiones PHP (`curl`, `openssl`) desactivadas.
+  - solución: corregir `AUTH0_DOMAIN` y habilitar extensiones en `php.ini`.

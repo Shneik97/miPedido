@@ -9,14 +9,18 @@ require_once __DIR__ . '/../models/Usuario.php';
  */
 class MiEntornoController {
 
+    private function redirect(string $url): void {
+        header('Location: ' . $url);
+        exit;
+    }
+
     /**
      * Muestra el formulario con las preferencias actuales.
      */
     public function index(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
 
         $prefs = preferenciasUiNormalize($_SESSION['usuario']['preferencias_ui'] ?? null);
@@ -32,16 +36,13 @@ class MiEntornoController {
     public function update(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: index.php?page=mi_entorno');
-            exit;
+            $this->redirect('index.php?page=mi_entorno');
         }
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=mi_entorno&err=csrf');
-            exit;
+            $this->redirect('index.php?page=mi_entorno&err=csrf');
         }
 
         $uid = (int) $_SESSION['usuario']['id'];
@@ -59,11 +60,9 @@ class MiEntornoController {
             $_SESSION['usuario']['preferencias_ui'] = $merged;
             mipedido_sidebar_emit_collapse_cookie(!empty($merged['sidebar_collapsed']));
         } catch (Throwable $e) {
-            header('Location: index.php?page=mi_entorno&err=db');
-            exit;
+            $this->redirect('index.php?page=mi_entorno&err=db');
         }
 
-        header('Location: index.php?page=mi_entorno&ok=1');
-        exit;
+        $this->redirect('index.php?page=mi_entorno&ok=1');
     }
 }

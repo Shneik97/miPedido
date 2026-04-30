@@ -13,16 +13,24 @@ class ProductoController {
     private function requireAuth(): void {
         authEnsureSession();
         if (!isset($_SESSION['usuario'])) {
-            header('Location: index.php');
-            exit;
+            $this->redirect('index.php');
         }
+    }
+
+    /**
+     * Atajo para redirecciones.
+     */
+    private function redirect(string $url): void {
+        header('Location: ' . $url);
+        exit;
     }
 
     public function index() {
         $this->requireAuth();
         $isAdmin = isAdmin();
+        $workspaceKey = currentWorkspaceKey();
         $producto = new Producto();
-        $productos = $producto->getAll();
+        $productos = $producto->getAll($workspaceKey);
         require __DIR__ . '/../views/productos/index.php';
     }
 
@@ -36,24 +44,23 @@ class ProductoController {
         $this->requireAuth();
         checkRole('admin');
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=productos&error=csrf');
-            exit;
+            $this->redirect('index.php?page=productos&error=csrf');
         }
+        $workspaceKey = currentWorkspaceKey();
         $producto = new Producto();
-        $producto->create($this->normalizeProductoPost($_POST));
-        header('Location: index.php?page=productos');
-        exit;
+        $producto->create($this->normalizeProductoPost($_POST), $workspaceKey);
+        $this->redirect('index.php?page=productos');
     }
 
     public function edit() {
         $this->requireAuth();
         checkRole('admin');
         $id = $_GET['id'] ?? '';
+        $workspaceKey = currentWorkspaceKey();
         $producto = new Producto();
-        $p = $producto->getById($id);
+        $p = $producto->getById($id, $workspaceKey);
         if (!$p) {
-            header('Location: index.php?page=productos');
-            exit;
+            $this->redirect('index.php?page=productos');
         }
         require __DIR__ . '/../views/productos/edit.php';
     }
@@ -62,23 +69,29 @@ class ProductoController {
         $this->requireAuth();
         checkRole('admin');
         if (!csrfIsValidRequest()) {
-            header('Location: index.php?page=productos&error=csrf');
-            exit;
+            $this->redirect('index.php?page=productos&error=csrf');
         }
         $id = $_POST['id'];
+        $workspaceKey = currentWorkspaceKey();
         $producto = new Producto();
-        $producto->update($id, $this->normalizeProductoPost($_POST));
-        header('Location: index.php?page=productos');
-        exit;
+        $producto->update($id, $this->normalizeProductoPost($_POST), $workspaceKey);
+        $this->redirect('index.php?page=productos');
     }
 
-    public function delete($id) {
+    public function delete(): void {
         $this->requireAuth();
         checkRole('admin');
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
+            $this->redirect('index.php?page=productos&error=csrf');
+        }
+        $id = (int) ($_POST['id'] ?? 0);
+        if ($id < 1) {
+            $this->redirect('index.php?page=productos');
+        }
+        $workspaceKey = currentWorkspaceKey();
         $producto = new Producto();
-        $producto->delete($id);
-        header('Location: index.php?page=productos');
-        exit;
+        $producto->delete($id, $workspaceKey);
+        $this->redirect('index.php?page=productos');
     }
 
     /**
