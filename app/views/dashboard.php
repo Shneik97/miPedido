@@ -192,7 +192,6 @@ ob_start();
         <div id="topProductosCard" class="card page-card">
             <div class="card-body">
                 <h2 class="h6 text-muted text-uppercase mb-2">Productos más vendidos</h2>
-                <p class="text-muted small mb-3">Ranking del mismo periodo que el gráfico de ventas.</p>
                 <div id="topProductosBody">
                     <?php if (!empty($productosMasVendidos)): ?>
                         <div class="table-responsive">

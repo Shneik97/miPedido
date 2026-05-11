@@ -11,9 +11,9 @@ ob_start();
     <div class="card page-card mb-3">
         <div class="card-body">
             <h1 class="h3 mb-2">Elige tu plan inicial</h1>
-            <p class="text-muted mb-2">Simulacion academica: no se procesa ningun pago real. Solo se guarda el plan elegido.</p>
+            <p class="text-muted mb-2">Se guarda el plan elegido.</p>
             <div class="alert alert-info py-2 small mb-0">
-                Por seguridad, esta demo solo pide datos mock (por ejemplo, ultimos 4 digitos). Nunca se guarda tarjeta completa.
+                Por seguridad, esta solo pide datos como (por ejemplo, ultimos 4 digitos). No se guardará tú tarjeta.
             </div>
         </div>
     </div>
@@ -94,13 +94,13 @@ ob_start();
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-3">Simulacion academica: no se procesa ningun pago real.</p>
+                    <p class="small text-muted mb-3">Rellene los campos correctamente</p>
                     <div class="mb-2">
-                        <label class="form-label">Nombre y apellidos (demo)</label>
+                        <label class="form-label">Nombre y apellidos</label>
                         <input type="text" name="titular" class="form-control" required minlength="4" maxlength="80">
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">DNI simple (demo)</label>
+                        <label class="form-label">DNI simple</label>
                         <input type="text" name="dni" class="form-control" required placeholder="12345678A" maxlength="12">
                     </div>
                     <div class="mb-2">
@@ -120,13 +120,13 @@ ob_start();
                     <div class="form-check mt-3">
                         <input class="form-check-input" type="checkbox" value="1" name="accept_sim" id="acceptSim" required>
                         <label class="form-check-label small" for="acceptSim">
-                            Acepto que esto es una simulacion academica y no se procesa ningun pago real.
+                            Acepto los terminos y condiciones.
                         </label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar plan simulado</button>
+                    <button type="submit" class="btn btn-primary">Guardar plan</button>
                 </div>
             </form>
         </div>

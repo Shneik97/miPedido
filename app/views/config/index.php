@@ -175,9 +175,9 @@ ob_start();
                     <h2 class="h6 text-uppercase text-muted mb-0">Plan actual</h2>
                     <span class="plan-badge"><i class="fa-solid fa-crown"></i><?= htmlspecialchars($planActualLabel) ?></span>
                 </div>
-                <p class="text-muted small mb-2">Tu suscripcion demo activa para esta cuenta admin.</p>
+                <p class="text-muted small mb-2">Tu suscripcion está activa para esta cuenta admin.</p>
                 <div class="plan-note mb-3">
-                    Simulacion academica: no se procesa ningun pago real.
+                    Plan mensual abonado.
                 </div>
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <?php if (!empty($puedeCambiarPlan)): ?>
@@ -186,7 +186,7 @@ ob_start();
                         </button>
                         <span class="small text-success"><i class="fa-solid fa-circle-check me-1"></i>Disponible ahora</span>
                     <?php else: ?>
-                        <span class="small text-muted">Cambio disponible cada 30 dias</span>
+                        <span class="small text-muted">Cambio disponible del plan cada 30 dias</span>
                     <?php endif; ?>
                 </div>
             </div>
@@ -202,11 +202,11 @@ ob_start();
             <form method="post" action="index.php?page=config_plan_update">
                 <?= csrfInput() ?>
                 <div class="modal-header">
-                    <h5 class="modal-title">Cambiar plan (simulacion)</h5>
+                    <h5 class="modal-title">Cambiar plan</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-3">Simulacion academica: no se procesa ningun pago real.</p>
+                    <p class="small text-muted mb-3">Formulario: Rellene correctamente sus datos.</p>
                     <div class="mb-2">
                         <label class="form-label">Nuevo plan</label>
                         <select name="plan" class="form-select" required>
@@ -216,11 +216,11 @@ ob_start();
                         </select>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Nombre y apellidos (demo)</label>
+                        <label class="form-label">Nombre y apellidos</label>
                         <input type="text" name="titular" class="form-control" required minlength="4" maxlength="80">
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">DNI simple (demo)</label>
+                        <label class="form-label">DNI/NIE</label>
                         <input type="text" name="dni" class="form-control" required maxlength="12" placeholder="12345678A">
                     </div>
                     <div class="mb-2">
@@ -240,7 +240,7 @@ ob_start();
                     <div class="form-check mt-3">
                         <input class="form-check-input" type="checkbox" value="1" name="accept_sim" id="acceptPlanSim" required>
                         <label class="form-check-label small" for="acceptPlanSim">
-                            Acepto que esto es una simulacion academica sin pagos reales.
+                            Acepto los terminos y condiciones.
                         </label>
                     </div>
                 </div>

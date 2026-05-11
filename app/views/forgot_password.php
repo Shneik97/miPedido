@@ -14,7 +14,7 @@ ob_start();
                 <div class="text-center mb-4">
                     <i class="fa-solid fa-key fa-2x text-primary mb-2"></i>
                     <h1 class="h4 mb-1">Recuperar contraseña</h1>
-                    <p class="text-muted small mb-0">Simulación de recuperación por código</p>
+                    <p class="text-muted small mb-0">Recuperación por código</p>
                 </div>
                 <?php if (!empty($forgotError)): ?>
                     <div class="alert alert-danger py-2 small"><?= htmlspecialchars($forgotError) ?></div>

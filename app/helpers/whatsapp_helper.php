@@ -58,11 +58,18 @@ function waMeUrl(string $digitosInternacionales, string $mensaje): string {
  * Ejemplo de salida:
  * "Hola, te envío el resumen del pedido #12 ..."
  */
+/**
+ * Texto plano con resumen del pedido para pegar en WhatsApp o prellenar wa.me.
+ * Versión limpia y profesional.
+ */
+/**
+ * Texto plano con resumen del pedido (Versión ultra-esencial)
+ */
 function textoResumenPedido(array $pedido, array $lineas, string $facturaRelUrl = ''): string {
-    $id = (int) ($pedido['id'] ?? 0);
     $cliente = (string) ($pedido['cliente_nombre'] ?? '');
     $lines = [];
     $total = 0.0;
+
     foreach ($lineas as $ln) {
         $nombre = (string) ($ln['producto_nombre'] ?? '');
         $qty = (int) ($ln['cantidad'] ?? 0);
@@ -71,34 +78,30 @@ function textoResumenPedido(array $pedido, array $lineas, string $facturaRelUrl 
         $total += $sub;
         $lines[] = '- ' . $nombre . ' x' . $qty . ' @ ' . number_format($pu, 2, ',', '.') . ' €';
     }
+
     $bloqueLineas = $lines !== [] ? implode("\n", $lines) : '(sin líneas)';
-    $msg = "Hola, te envío el resumen del pedido #{$id} (miPedido).\n";
+
+    // Construcción del mensaje sin identificadores de ERP ni enlaces
+    $msg = "Hola, te envío el resumen del pedido que realizaste.\n\n";
     $msg .= "Cliente: {$cliente}\n";
-    $msg .= "Líneas:\n{$bloqueLineas}\n";
-    $msg .= 'Total: ' . number_format($total, 2, ',', '.') . " €\n";
-    if ($facturaRelUrl !== '') {
-        $msg .= "Factura / detalle: {$facturaRelUrl}\n";
-    }
-    $msg .= "\n(En producción conviene usar una URL pública HTTPS a la factura.)";
-    return $msg;
+    $msg .= "Líneas:\n{$bloqueLineas}\n\n";
+    $msg .= "Total: " . number_format($total, 2, ',', '.') . " €";
+
+    return $msg; 
 }
 
 /**
- * Mensaje breve para WhatsApp desde el listado de pedidos (usa total ya calculado en la fila).
- * Ejemplo:
- * "Hola, te informo del pedido #12 ..."
+ * Mensaje breve para el listado (Versión ultra-esencial sin enlace)
  */
 function textoWhatsappPedidoCorto(array $filaResumen, string $facturaRelUrl): string {
-    $id = (int) ($filaResumen['id'] ?? 0);
     $cliente = (string) ($filaResumen['cliente_nombre'] ?? '');
     $total = (float) ($filaResumen['total'] ?? 0);
     $estado = (string) ($filaResumen['estado'] ?? '');
-    $msg = "Hola, te informo del pedido #{$id} (ERP miPedido).\n";
+
+    $msg = "Hola, te informo de tu pedido.\n";
     $msg .= "Cliente: {$cliente}\n";
-    $msg .= 'Estado: ' . $estado . "\n";
-    $msg .= 'Total: ' . number_format($total, 2, ',', '.') . " €\n";
-    if ($facturaRelUrl !== '') {
-        $msg .= "Enlace factura: {$facturaRelUrl}\n";
-    }
+    $msg .= "Estado: {$estado}\n";
+    $msg .= "Total: " . number_format($total, 2, ',', '.') . " €";
+
     return $msg;
 }

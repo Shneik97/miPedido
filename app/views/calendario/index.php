@@ -78,10 +78,11 @@ ob_start();
                     <div class="alert alert-danger py-2 small mb-3">El formulario caducó. Recarga la página e inténtalo de nuevo.</div>
                 <?php endif; ?>
                 <p class="text-muted small mb-3">
-                    <span class="badge text-bg-primary me-1">Asignada</span> la puso otra persona (p. ej. tu jefe).
-                    <span class="badge text-bg-secondary me-1">Propia</span> la creaste tú desde este calendario.
-                    El día de cada tarea es la <strong>fecha límite</strong> si existe; si no, el día en que se <strong>creó</strong>.
-                    <span class="d-block mt-1">Estado: <span class="badge text-bg-success">Hecha</span> verde · <span class="badge text-bg-info text-dark">En curso</span> azul.</span>
+                    <span class="badge text-bg-primary me-1">Asignada</span> tareas asignadas por tú jefe.
+                    <br>
+                    <span class="badge text-bg-primary me-1">Propia</span> tareas asignadas propias.
+                    <br>
+                    <span class="d-block mt-1">Estado: <span class="badge text-bg-success">Hecha</span> <span class="badge text-bg-info text-dark">En curso</span> </span>
                 </p>
                 <div class="cal-grid mb-1">
                     <?php foreach ($diasCabecera as $cab): ?>
