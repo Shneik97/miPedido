@@ -205,63 +205,28 @@ Esta sección es para entender rápido "qué hace cada parte" sin entrar en cód
   - editar factura pendiente (abre en pestaña nueva).
   - (sin botón de revertir/reemitir en el listado, para simplificar el flujo operativo).
 
-## Presentación pública + crear cuenta + Google (Auth0)
+## Presentación pública + crear cuenta (email y contraseña)
 
-Se añadió una entrada pública para explicar el producto y permitir alta de usuarios.
+Se añadió una entrada pública para explicar el producto y permitir alta de usuarios **solo con registro local** (sin OAuth externo).
 
-### Nuevas rutas públicas
+### Rutas públicas relacionadas
 
 - `index.php` (por defecto ahora va a `page=home`)
 - `index.php?page=home` -> pantalla de presentación con secciones animadas.
 - `index.php?page=login` -> inicio de sesión.
 - `index.php?page=register` -> alta de cuenta local.
 - `index.php?page=register_store` -> procesamiento del registro local.
-- `index.php?page=auth_google_start` -> inicia flujo Google con Auth0.
-- `index.php?page=auth_google_callback` -> callback OAuth de Auth0.
 
-### Qué hace cada pantalla nueva
+### Qué hace cada pantalla
 
 - `home`: landing con resumen funcional (ventas, pedidos, facturación, tareas, seguridad) y botones superiores de acceso.
 - `register`: formulario de alta con nombre, email y contraseña (validaciones básicas).
-- Botón Google en registro: redirige a Auth0 para autenticación federada.
-
-### Variables de entorno para Auth0
-
-Configura estas variables antes de probar Google:
-
-- `AUTH0_DOMAIN`
-- `AUTH0_CLIENT_ID`
-- `AUTH0_CLIENT_SECRET`
-- `AUTH0_CONNECTION` (habitual: `google-oauth2`)
-- `AUTH0_REDIRECT_URI` (opcional; si no se define, se calcula automáticamente)
-
-Ejemplo de callback local:
-
-- `http://localhost:8000/index.php?page=auth_google_callback`
-
-### Configuración mínima en Auth0 (fuente oficial)
-
-Fuente primaria recomendada:
-- [Auth0 Docs](https://auth0.com/docs)
-
-Pasos:
-1. Crear aplicación tipo **Regular Web Application**.
-2. Activar conexión de Google en Auth0.
-3. Añadir URL de callback permitida (`Allowed Callback URLs`).
-4. Verificar `Allowed Logout URLs` y `Allowed Web Origins` para tu entorno local.
 
 ### Prueba rápida (demo)
 
 1. Abre `http://localhost:8000/` y comprueba la pantalla de presentación.
 2. Pulsa **Crear cuenta** y registra un usuario local.
 3. Inicia sesión con ese usuario.
-4. Cierra sesión y prueba **Registrarme con Google (Auth0)**.
-5. Tras callback correcto, debes acabar en `Dashboard` con sesión iniciada.
-
-### Límites actuales (importante para defensa)
-
-- El acceso Google depende de la configuración externa de Auth0.
-- Si faltan variables `AUTH0_*` o el callback no coincide, el sistema mostrará error guiado y seguirá disponible el login local.
 
 ## Coherencia y seguridad reciente (acciones críticas)
 
@@ -333,6 +298,3 @@ Se aplicaron ajustes para que el comportamiento sea consistente con el estado de
 - **Error SQL 1054 (`Unknown column 'workspace_key'`)**:
   - causa: código actualizado sin ejecutar migración correspondiente.
   - solución: ejecutar fase 9/10 según el caso y volver a entrar.
-- **Auth0 token no recibido**:
-  - causas detectadas: dominio incorrecto y extensiones PHP (`curl`, `openssl`) desactivadas.
-  - solución: corregir `AUTH0_DOMAIN` y habilitar extensiones en `php.ini`.

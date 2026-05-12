@@ -13,7 +13,6 @@ En este proyecto, el despliegue incluye:
 - Un servicio web para ejecutar PHP (tu app MVC).
 - Un servicio MySQL para guardar datos.
 - Variables de entorno para no hardcodear credenciales.
-- (Opcional) Login con Google/Auth0 funcionando en dominio real.
 
 ---
 
@@ -42,8 +41,7 @@ Antes de desplegar, deja esto listo:
 1. Repositorio en GitHub actualizado.
 2. Proyecto funcionando en local sin errores graves.
 3. Cuenta en Railway.
-4. (Opcional) Cuenta Auth0 si usaras Google login.
-5. (Opcional) Dominio propio si no quieres usar `up.railway.app`.
+4. (Opcional) Dominio propio si no quieres usar `up.railway.app`.
 
 ---
 
@@ -62,7 +60,6 @@ Antes de desplegar, deja esto listo:
 - Crear proyecto en Railway, conectar GitHub, elegir rama.
 - Crear el servicio **MySQL** y enlazar variables al servicio web (ver paso 4).
 - Ejecutar `config/database.sql` contra la base de Railway.
-- (Opcional) Auth0: aplicacion, URLs de callback y variables `AUTH0_*`.
 - (Opcional) Dominio y DNS.
 - Revisar **logs** del despliegue si algo falla.
 
@@ -164,27 +161,7 @@ Importante:
 
 - En produccion evita ejecutar bloques de `CREATE USER` / permisos pensados solo para tu PC si el proveedor ya te da usuario y base creados (Railway MySQL suele venir listo).
 
-## Paso 7: configurar Auth0 (si usas Google)
-
-Cuando ya tengas URL publica, actualiza en Auth0:
-
-- Allowed Callback URLs
-- Allowed Logout URLs
-- Allowed Web Origins
-
-Variables del web service:
-
-- `AUTH0_DOMAIN`
-- `AUTH0_CLIENT_ID`
-- `AUTH0_CLIENT_SECRET`
-- `AUTH0_CONNECTION` (normalmente `google-oauth2`)
-- `AUTH0_REDIRECT_URI` (URL real de callback)
-
-Ejemplo:
-
-- `https://tu-dominio/index.php?page=auth_google_callback`
-
-## Paso 8: activar dominio
+## Paso 7: activar dominio
 
 1. Servicio web -> `Settings` -> `Domains`.
 2. Puedes usar:
@@ -194,7 +171,7 @@ Ejemplo:
    - configura DNS con los registros que Railway indique,
    - espera propagacion.
 
-## Paso 9: validacion final
+## Paso 8: validacion final
 
 Prueba en URL publica:
 
@@ -202,8 +179,7 @@ Prueba en URL publica:
 2. dashboard,
 3. CRUD principal,
 4. modulos (pedidos, ventas, facturacion, tareas),
-5. Auth0/Google (si activado),
-6. revisar logs si algo falla.
+5. revisar logs si algo falla.
 
 ---
 
@@ -216,14 +192,6 @@ Prueba en URL publica:
 - `DB_NAME`
 - `DB_USER`
 - `DB_PASSWORD`
-
-## Auth0 (opcionales)
-
-- `AUTH0_DOMAIN`
-- `AUTH0_CLIENT_ID`
-- `AUTH0_CLIENT_SECRET`
-- `AUTH0_CONNECTION`
-- `AUTH0_REDIRECT_URI`
 
 ---
 
@@ -243,18 +211,6 @@ Solucion:
 - revisar estado del servicio MySQL,
 - ejecutar schema SQL.
 
-## Error Auth0 callback
-
-Posibles causas:
-
-- callback no coincide exactamente,
-- falta `https`,
-- dominio no registrado en Auth0.
-
-Solucion:
-
-- copiar URL exacta entre Railway y Auth0.
-
 ## Error 500 en web
 
 Solucion:
@@ -273,7 +229,6 @@ Antes de presentar:
 3. Dashboard sin errores.
 4. Modulos clave funcionando.
 5. DB persistente tras redeploy.
-6. Auth0 funcional (si aplica).
 
 ---
 
@@ -306,4 +261,3 @@ Ajusta `DB_*` a tu MySQL local. Abre `http://localhost:8080/`. Asi validas el co
 - Railway Docs - Dockerfiles: https://docs.railway.app/deploy/dockerfiles
 - Railway Docs - Variables: https://docs.railway.app/develop/variables
 - Railway Docs - MySQL: https://docs.railway.com/databases/mysql
-- Auth0 Docs: https://auth0.com/docs

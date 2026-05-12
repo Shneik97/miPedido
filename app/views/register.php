@@ -46,10 +46,6 @@ ob_start();
                     </button>
                 </form>
 
-                <a href="index.php?page=auth_google_start" class="btn btn-outline-dark w-100 py-2 mb-3">
-                    <i class="fa-brands fa-google me-2"></i>Registrarme con Google
-                </a>
-
                 <div class="text-center">
                     <a href="index.php?page=login" class="small text-decoration-none">Ya tengo cuenta</a>
                 </div>

@@ -499,9 +499,9 @@ Se retiró el botón de revertir/reemitir del listado para evitar acciones redun
 
 ---
 
-## 20. Portal público + registro de cuenta + Google con Auth0
+## 20. Portal público + registro de cuenta (sin OAuth externo)
 
-Esta fase añade una entrada pública para presentar el producto y mejorar el acceso inicial.
+Esta fase añade una entrada pública para presentar el producto y mejorar el acceso inicial. El acceso es **solo con email y contraseña** (login y registro local). En una versión anterior del proyecto existió integración con **Google vía Auth0**; se **retiró del código** para simplificar despliegue y dependencias.
 
 ### 20.1. Pantalla de presentación (`home`)
 
@@ -518,30 +518,9 @@ Esta fase añade una entrada pública para presentar el producto y mejorar el ac
 - Permite alta local con nombre, email y contraseña (con validaciones básicas).
 - Si el registro local es correcto, el usuario recibe confirmación y puede entrar por login.
 
-### 20.3. Registro/inicio con Google usando Auth0
+**Rutas públicas relacionadas:** `page=home`, `page=login`, `page=register`, `page=register_store`.
 
-**Diseño elegido:**  
-Google no se conecta “directo” al código propio; se usa **Auth0** como intermediario para simplificar seguridad y mantenimiento.
-
-**Rutas añadidas:**
-- `index.php?page=home`
-- `index.php?page=login`
-- `index.php?page=register`
-- `index.php?page=register_store`
-- `index.php?page=auth_google_start`
-- `index.php?page=auth_google_callback`
-
-**Variables de entorno necesarias (`AUTH0_*`):**
-- `AUTH0_DOMAIN`
-- `AUTH0_CLIENT_ID`
-- `AUTH0_CLIENT_SECRET`
-- `AUTH0_CONNECTION` (normalmente `google-oauth2`)
-- `AUTH0_REDIRECT_URI` (opcional; si falta, se calcula automáticamente)
-
-**Fuente fiable principal (oficial):**  
-- Auth0 Docs: [https://auth0.com/docs](https://auth0.com/docs)
-
-### 20.4. Coherencia de seguridad en acciones críticas
+### 20.3. Coherencia de seguridad en acciones críticas
 
 Para cerrar incongruencias funcionales detectadas durante pruebas:
 
@@ -553,7 +532,7 @@ Para cerrar incongruencias funcionales detectadas durante pruebas:
   - se ejecutan por **POST + token CSRF**.
   - no quedan como simples enlaces GET.
 
-### 20.5. Pruebas rápidas de esta fase
+### 20.4. Pruebas rápidas de esta fase
 
 1. Abrir `index.php` y comprobar que entra en presentación pública.  
 2. Pulsar **Crear cuenta** y registrar un usuario local.  
@@ -672,13 +651,9 @@ Código actualizado antes de ejecutar migraciones nuevas.
 **Solución aplicada:**  
 Ejecutar migraciones fase 9 y fase 10, recargar sesión y volver a probar.
 
-### 24.3 Error Auth0: “No se recibió token”
+### 24.3 OAuth / Auth0 (retirado del código actual)
 
-**Causa 1:** dominio Auth0 mal escrito.  
-**Causa 2:** extensiones `curl` y `openssl` desactivadas en PHP.
-
-**Solución aplicada:**  
-Corregir `AUTH0_DOMAIN` y activar extensiones en `php.ini`.
+En versiones anteriores se probó login con Google mediante Auth0; se documentaron errores típicos (token, dominio, extensiones PHP). La versión actual del proyecto **no incluye** esa integración: el acceso es **solo local** (email + contraseña).
 
 ### 24.4 Problema visual en globo de onboarding
 

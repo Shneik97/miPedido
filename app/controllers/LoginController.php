@@ -7,7 +7,6 @@ require_once __DIR__ . '/../models/Usuario.php';
  * Controlador de autenticación:
  * - login local
  * - registro local
- * - login federado con Google/Auth0
  */
 class LoginController
 {
@@ -30,7 +29,7 @@ class LoginController
     }
 
     /**
-     * Cierra el proceso de login exitoso (local o Google) en un solo punto.
+     * Cierra el proceso de login exitoso en un solo punto.
      */
     private function completeLogin(array $usuario): void
     {
@@ -120,87 +119,6 @@ class LoginController
         $workspaceKey = $this->newWorkspaceKey();
         $userModel->create($nombre, $email, $password, 'admin', $workspaceKey);
         $this->redirectWithSessionMessage('register_ok', 'Cuenta creada. Ya puedes iniciar sesión.', 'index.php?page=login');
-    }
-
-    /**
-     * Inicia el flujo OAuth contra Auth0/Google.
-     */
-    public function authGoogleStart(): void
-    {
-        authEnsureSession();
-        $cfg = $this->auth0Config();
-        if (!$cfg['enabled']) {
-            $this->redirectWithSessionMessage('register_error', 'Falta configurar Auth0/Google. Revisa README para las variables AUTH0_*.', 'index.php?page=register');
-        }
-
-        $state = bin2hex(random_bytes(16));
-        $_SESSION['auth0_state'] = $state;
-
-        $params = [
-            'response_type' => 'code',
-            'client_id' => $cfg['client_id'],
-            'redirect_uri' => $cfg['redirect_uri'],
-            'scope' => 'openid profile email',
-            'state' => $state,
-            'connection' => $cfg['connection'],
-            'prompt' => 'login',
-        ];
-        header('Location: https://' . $cfg['domain'] . '/authorize?' . http_build_query($params));
-        exit;
-    }
-
-    public function authGoogleCallback(): void
-    {
-        authEnsureSession();
-        $cfg = $this->auth0Config();
-        if (!$cfg['enabled']) {
-            $this->redirectWithSessionMessage('login_error', 'Auth0 no está configurado.', 'index.php?page=login');
-        }
-
-        $state = (string) ($_GET['state'] ?? '');
-        $code = (string) ($_GET['code'] ?? '');
-        $stateSession = (string) ($_SESSION['auth0_state'] ?? '');
-        unset($_SESSION['auth0_state']);
-        if ($state === '' || $code === '' || $stateSession === '' || !hash_equals($stateSession, $state)) {
-            $this->redirectWithSessionMessage('login_error', 'No se pudo validar el inicio con Google (state inválido).', 'index.php?page=login');
-        }
-
-        $tokenData = $this->httpPostForm('https://' . $cfg['domain'] . '/oauth/token', [
-            'grant_type' => 'authorization_code',
-            'client_id' => $cfg['client_id'],
-            'client_secret' => $cfg['client_secret'],
-            'code' => $code,
-            'redirect_uri' => $cfg['redirect_uri'],
-        ]);
-        $accessToken = (string) ($tokenData['access_token'] ?? '');
-        if ($accessToken === '') {
-            $this->redirectWithSessionMessage('login_error', 'No se recibió token de Auth0.', 'index.php?page=login');
-        }
-
-        $userInfo = $this->httpGetJson('https://' . $cfg['domain'] . '/userinfo', [
-            'Authorization: Bearer ' . $accessToken,
-        ]);
-        $email = trim((string) ($userInfo['email'] ?? ''));
-        $nombre = trim((string) ($userInfo['name'] ?? 'Usuario Google'));
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->redirectWithSessionMessage('login_error', 'Google/Auth0 no devolvió un email válido.', 'index.php?page=login');
-        }
-
-        $userModel = new Usuario();
-        $existente = $userModel->findByEmail($email);
-        if (!$existente) {
-            $passwordRandom = bin2hex(random_bytes(16));
-            $workspaceKey = $this->newWorkspaceKey();
-            $userModel->create($nombre !== '' ? $nombre : 'Usuario Google', $email, $passwordRandom, 'admin', $workspaceKey);
-        }
-
-        $usuario = $userModel->getForLoginByEmail($email);
-        if (!$usuario) {
-            $this->redirectWithSessionMessage('login_error', 'No se pudo completar el acceso con Google.', 'index.php?page=login');
-        }
-        $userModel->clearLoginSecurity((int) $usuario['id']);
-        session_regenerate_id(true);
-        $this->completeLogin($usuario);
     }
 
     private function processLogin(): void
@@ -305,79 +223,6 @@ class LoginController
         unset($_SESSION['pwd_reset_demo']);
         $_SESSION['login_error'] = null;
         $this->redirectWithSessionMessage('register_ok', 'Contraseña actualizada. Ya puedes iniciar sesión.', 'index.php?page=login');
-    }
-
-    private function auth0Config(): array
-    {
-        $domain = trim((string) getenv('AUTH0_DOMAIN'));
-        $clientId = trim((string) getenv('AUTH0_CLIENT_ID'));
-        $clientSecret = trim((string) getenv('AUTH0_CLIENT_SECRET'));
-        $connection = trim((string) getenv('AUTH0_CONNECTION'));
-        if ($connection === '') {
-            $connection = 'google-oauth2';
-        }
-        $redirectUri = trim((string) getenv('AUTH0_REDIRECT_URI'));
-        if ($redirectUri === '') {
-            $scheme = authIsHttps() ? 'https' : 'http';
-            $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost:8000');
-            $redirectUri = $scheme . '://' . $host . '/index.php?page=auth_google_callback';
-        }
-
-        return [
-            'enabled' => ($domain !== '' && $clientId !== '' && $clientSecret !== ''),
-            'domain' => $domain,
-            'client_id' => $clientId,
-            'client_secret' => $clientSecret,
-            'redirect_uri' => $redirectUri,
-            'connection' => $connection,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function httpPostForm(string $url, array $payload): array
-    {
-        $opts = [
-            'http' => [
-                'method' => 'POST',
-                'header' => "Content-Type: application/x-www-form-urlencoded\r\nAccept: application/json\r\n",
-                'content' => http_build_query($payload),
-                'ignore_errors' => true,
-                'timeout' => 15,
-            ],
-        ];
-        $raw = @file_get_contents($url, false, stream_context_create($opts));
-        if ($raw === false) {
-            return [];
-        }
-        $data = json_decode($raw, true);
-        return is_array($data) ? $data : [];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function httpGetJson(string $url, array $headers = []): array
-    {
-        $headerText = "Accept: application/json\r\n";
-        if (!empty($headers)) {
-            $headerText .= implode("\r\n", $headers) . "\r\n";
-        }
-        $opts = [
-            'http' => [
-                'method' => 'GET',
-                'header' => $headerText,
-                'ignore_errors' => true,
-                'timeout' => 15,
-            ],
-        ];
-        $raw = @file_get_contents($url, false, stream_context_create($opts));
-        if ($raw === false) {
-            return [];
-        }
-        $data = json_decode($raw, true);
-        return is_array($data) ? $data : [];
     }
 
     private function newWorkspaceKey(): string
