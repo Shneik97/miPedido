@@ -29,6 +29,10 @@ function authIsHttps(): bool
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
         return true;
     }
+    $forwarded = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+    if ($forwarded === 'https') {
+        return true;
+    }
     return (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
 }
 

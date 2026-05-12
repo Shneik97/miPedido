@@ -1,0 +1,14 @@
+.git
+.github
+.dockerignore
+.vscode
+.idea
+**/.DS_Store
+Thumbs.db
+*.log
+vendor
+node_modules
+storage
+.env
+.env.*
+!.env.example

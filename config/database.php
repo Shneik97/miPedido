@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Credenciales: en producción usar variables de entorno (ver docs/DESPLIEGUE.md).
+ * Credenciales: en producción usar variables de entorno (ver docs/Despliegue.md).
  *
  * Desarrollo: por defecto `127.0.0.1` (TCP). Si ves «Access denied» (1045),
  * revisa usuario/clave en este archivo y vuelve a crear la base con

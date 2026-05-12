@@ -47,6 +47,27 @@ Antes de desplegar, deja esto listo:
 
 ---
 
+## 3.1) Que ya esta preparado en el codigo y que haces tu
+
+**En el repositorio (listo para usar):**
+
+- `Dockerfile` para construir y arrancar la app en Railway (PHP + `pdo_mysql`, raiz `public/`, puerto `PORT`).
+- `.dockerignore` para imagenes mas ligeras y sin mezclar tu `vendor/` local.
+- `.env.example` como guia de variables (copia local a `.env` si quieres; en Railway se configuran en el panel).
+- `config/database.php` leyendo `DB_*` desde el entorno.
+- Deteccion de HTTPS detras de proxy (`X-Forwarded-Proto`) para cookies de sesion en despliegues con TLS.
+
+**Solo tu puedes / debes hacerlo (Railway y cuentas):**
+
+- Crear proyecto en Railway, conectar GitHub, elegir rama.
+- Crear el servicio **MySQL** y enlazar variables al servicio web (ver paso 4).
+- Ejecutar `config/database.sql` contra la base de Railway.
+- (Opcional) Auth0: aplicacion, URLs de callback y variables `AUTH0_*`.
+- (Opcional) Dominio y DNS.
+- Revisar **logs** del despliegue si algo falla.
+
+---
+
 ## 4) Arquitectura final en Railway
 
 Tu proyecto queda dividido en dos servicios principales:
@@ -104,36 +125,44 @@ Ventaja: separar web y DB hace la app mas mantenible y mas realista para producc
 
 ## Paso 4: conectar el Web Service con MySQL
 
-En el servicio web, en `Variables`, crea:
+En el servicio web, en `Variables`, crea referencias al plugin MySQL (sintaxis oficial de Railway). **Sustituye `MySQL`** por el nombre exacto de tu servicio de base de datos en el canvas si lo renombraste (por ejemplo `MySQL`, `mysql`, etc.):
 
-- `DB_HOST = ${{MySQL.MYSQLHOST}}`
-- `DB_PORT = ${{MySQL.MYSQLPORT}}`
-- `DB_NAME = ${{MySQL.MYSQLDATABASE}}`
-- `DB_USER = ${{MySQL.MYSQLUSER}}`
-- `DB_PASSWORD = ${{MySQL.MYSQLPASSWORD}}`
+- `DB_HOST` = `${{MySQL.MYSQLHOST}}`
+- `DB_PORT` = `${{MySQL.MYSQLPORT}}`
+- `DB_NAME` = `${{MySQL.MYSQLDATABASE}}`
+- `DB_USER` = `${{MySQL.MYSQLUSER}}`
+- `DB_PASSWORD` = `${{MySQL.MYSQLPASSWORD}}`
 
 Esto funciona porque `config/database.php` ya lee esas variables con `getenv`.
 
-## Paso 5: configurar build/start del servicio web
+Documentacion: [MySQL en Railway](https://docs.railway.com/databases/mysql) y [variables referenciadas](https://docs.railway.app/develop/variables).
 
-Para este proyecto PHP MVC, lo mas estable es usar Dockerfile.
+## Paso 5: build y arranque del servicio web (Dockerfile)
 
-Objetivo tecnico:
+En la raiz del repo hay un **`Dockerfile`** pensado para Railway:
 
-- tener PHP con `pdo` y `pdo_mysql`,
-- apuntar servidor web a carpeta `public/`,
-- desplegar de forma repetible.
+- PHP **8.2** con extension **`pdo_mysql`**.
+- Arranque con el servidor integrado de PHP (`php -S`) en **`0.0.0.0:${PORT}`** con raiz en **`public/`** (Railway inyecta `PORT` automaticamente).
+- Adecuado para **demostracion / TFG**; para trafico muy alto convendria FPM + nginx u otro stack.
+
+**Que no tienes que configurar en Railway** si usas solo este repo:
+
+- Comando de inicio manual (lo define el `Dockerfile`).
+- Nixpacks especial: si existe `Dockerfile`, Railway lo usa para construir la imagen (ver [Dockerfiles](https://docs.railway.app/deploy/dockerfiles)).
+
+**`Procfile`** (Heroku con `heroku-php-apache2`) **no** es lo que ejecuta Railway en este flujo; sirve si despliegas en Heroku. En Railway cuenta el `Dockerfile`.
 
 ## Paso 6: inicializar el esquema SQL
 
-Conecta al MySQL de Railway y ejecuta:
+Conecta al MySQL de Railway (cliente MySQL, pestaña **Data** o tunel) y ejecuta:
 
-- instalacion limpia: `config/database.sql`
-- si migras una DB antigua: scripts `migrate_fase4` a `migrate_fase12` en orden.
+- **Instalacion limpia**: el script `config/database.sql` (esquema completo).
+
+Si en el pasado usabas scripts `migrate_fase*.sql` y ya no estan en tu rama, puedes recuperarlos del historial de git si los necesitas; para un despliegue nuevo basta con `database.sql`.
 
 Importante:
 
-- si el entorno no necesita usuarios MySQL locales extra, evita ejecutar bloques no necesarios de `CREATE USER` en produccion.
+- En produccion evita ejecutar bloques de `CREATE USER` / permisos pensados solo para tu PC si el proveedor ya te da usuario y base creados (Railway MySQL suele venir listo).
 
 ## Paso 7: configurar Auth0 (si usas Google)
 
@@ -259,7 +288,20 @@ Al finalizar este proceso, `miPedido` queda:
 
 ---
 
-## 10) Fuentes oficiales consultadas
+## 10) Probar la imagen Docker en local (opcional)
+
+Con Docker Desktop encendido, desde la raiz del proyecto:
+
+```bash
+docker build -t mipedido-railway .
+docker run --rm -p 8080:8080 -e PORT=8080 -e DB_HOST=host.docker.internal -e DB_PORT=3307 -e DB_NAME=mipedido -e DB_USER=user_mipedido -e DB_PASSWORD=12345 mipedido-railway
+```
+
+Ajusta `DB_*` a tu MySQL local. Abre `http://localhost:8080/`. Asi validas el contenedor antes de subir a Railway.
+
+---
+
+## 11) Fuentes oficiales consultadas
 
 - Railway Docs - Dockerfiles: https://docs.railway.app/deploy/dockerfiles
 - Railway Docs - Variables: https://docs.railway.app/develop/variables

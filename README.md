@@ -44,8 +44,10 @@ Guía corta de uso SQL:
 - Instalación limpia: `config/database.sql`
 - Base antigua: migraciones `fase4` a `fase12`
 
-Guía de despliegue a internet (Railway):
+Guía de despliegue a internet (Railway + Docker):
+
 - `docs/Despliegue.md`
+- `Dockerfile` (build que usa Railway por defecto)
 
 ### Mapa rápido de `config/` (nivel estudiante)
 
