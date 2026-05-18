@@ -2,7 +2,7 @@
 
 ## Descripción
 
-ERP en PHP siguiendo el patrón **MVC**, orientado a la **gestión de pedidos** para PYMEs (desarrollo académico / TFG).
+ERP netamente en lenguaje PHP siguiendo el patrón MVC, orientado a la gestión de pedidos para PYMEs.
 
 ## Requisitos
 
@@ -20,7 +20,7 @@ Abre en el navegador: **http://localhost:8000/** o **http://localhost:8000/index
 
 | Campo  | Valor            |
 |--------|------------------|
-| Email  | `admin@test.com` (coherente con `config/database.sql`) |
+| Email  | `admin@test.com` |
 | Clave  | `admin123`       |
 
 > Solo para entorno local de desarrollo. No uses estas credenciales en producción.
@@ -49,7 +49,7 @@ Guía de despliegue a internet (Railway + Docker):
 - `docs/Despliegue.md`
 - `Dockerfile` (build que usa Railway por defecto)
 
-### Mapa rápido de `config/` (nivel estudiante)
+### Mapa rápido de `config/` 
 
 - `config/database.php`: conexión de PHP a MySQL (host, puerto, usuario, clave y base de datos).
 - `config/database.sql`: punto de inicio para instalación nueva (crea tablas y datos base).
@@ -78,9 +78,9 @@ Flujo recomendado:
 - El documento del TFG incluye **fases 4 a 6** y las mejoras de cabecera/avisos: [docs/TFG_mejoras_pedidos_tareas_whatsapp.md](docs/TFG_mejoras_pedidos_tareas_whatsapp.md).
 - Limpieza SQL aplicada: se retiraron scripts de parche antiguos para dejar un flujo claro (instalación limpia + migraciones por fase).
 
-## Checklist de defensa (demo rápida 10-15 min)
+## Checklist rápida
 
-Este bloque te sirve para enseñar, en vivo, que la aplicación tiene defensas básicas reales y no solo teoría.
+Este bloque te sirve para enseñar, en vivo, que es y que es lo que tiene la aplicación.
 
 ### 1) Login con bloqueo escalado (15 min -> 24 h)
 
@@ -283,12 +283,6 @@ Se aplicaron ajustes para que el comportamiento sea consistente con el estado de
   - **nunca** se guarda tarjeta completa,
   - mensaje visible: **"simulación académica, no se procesa ningún pago real"**.
 - En `Configuración`, el admin ve su plan actual y puede cambiarlo con límite de **una vez cada 30 días** (simulado).
-
-## Nota de enfoque (nivel junior)
-
-- El proyecto está orientado a presentación académica: se prioriza simplicidad de implementación y explicación.
-- Se evita sobre-ingeniería cuando no aporta valor directo a la demo.
-- Si una parte avanzada puede complicar mantenimiento o exposición oral, se sustituye por versión simple y estable.
 
 ## Incidencias reales y solución rápida
 
