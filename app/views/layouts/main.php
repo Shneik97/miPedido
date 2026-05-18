@@ -6,6 +6,9 @@ require_once __DIR__ . '/../../helpers/preferencias_ui_helper.php';
 // Variables base del layout compartido.
 // Idea estudiante: este archivo es la "plantilla general" (header, sidebar, estilos y scripts globales).
 authEnsureSession();
+if (isset($_SESSION['usuario']['id'])) {
+    authRefreshPermisosSesion();
+}
 $isAdmin = isAdmin();
 $pageTitle = $pageTitle ?? 'ERP miPedido';
 $showSidebar = $showSidebar ?? true;
@@ -20,8 +23,10 @@ $navTareasPendientes = 0;
 $navCabeceraNotifs = [];
 if ($showSidebar && isset($_SESSION['usuario']['id'])) {
     $wsNav = (string) ($_SESSION['usuario']['workspace_key'] ?? '');
-    $navTareasPendientes = contarTareasPendientesNav((int) $_SESSION['usuario']['id'], $isAdmin, $wsNav);
-    $navCabeceraNotifs = notificacionesCabecera((int) $_SESSION['usuario']['id'], $isAdmin, $wsNav);
+    if (usuarioTienePermiso('tareas_gestionar') || usuarioTienePermiso('calendario_ver')) {
+        $navTareasPendientes = contarTareasPendientesNav((int) $_SESSION['usuario']['id'], $isAdmin, $wsNav);
+        $navCabeceraNotifs = notificacionesCabecera((int) $_SESSION['usuario']['id'], $isAdmin, $wsNav);
+    }
 }
 
 // Preferencias visuales del usuario (tema, color, posición/collapse de sidebar).
@@ -77,24 +82,37 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
         <span>miPedido</span>
     </div>
     <nav class="sidebar-nav flex-column py-3">
+        <?php if (usuarioTienePermiso('dashboard_ver')): ?>
         <a class="nav-link <?= $currentNav === 'dashboard' ? 'active' : '' ?>" href="index.php?page=dashboard">
             <i class="fa-solid fa-chart-line"></i><span class="nav-text">Dashboard</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('clientes_gestionar')): ?>
         <a class="nav-link <?= $currentNav === 'clientes' ? 'active' : '' ?>" href="index.php?page=clientes">
             <i class="fa-solid fa-users"></i><span class="nav-text">Clientes</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('productos_gestionar')): ?>
         <a class="nav-link <?= $currentNav === 'productos' ? 'active' : '' ?>" href="index.php?page=productos">
             <i class="fa-solid fa-box-open"></i><span class="nav-text">Productos</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('pedidos_gestionar')): ?>
         <a class="nav-link <?= $currentNav === 'pedidos' ? 'active' : '' ?>" href="index.php?page=pedidos">
             <i class="fa-solid fa-receipt"></i><span class="nav-text">Pedidos</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('ventas_ver')): ?>
         <a class="nav-link <?= $currentNav === 'ventas' ? 'active' : '' ?>" href="index.php?page=ventas">
             <i class="fa-solid fa-chart-column"></i><span class="nav-text">Ventas</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('facturacion_ver')): ?>
         <a class="nav-link <?= $currentNav === 'facturacion' ? 'active' : '' ?>" href="index.php?page=facturacion">
             <i class="fa-solid fa-file-invoice-dollar"></i><span class="nav-text">Facturación</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('tareas_gestionar')): ?>
         <a class="nav-link <?= $currentNav === 'tareas' ? 'active' : '' ?><?= !empty($navTareasPendientes) ? ' nav-link--tareas-badge' : '' ?>" href="index.php?page=tareas">
             <?php if (!empty($navTareasPendientes)): ?>
             <span class="nav-tareas-icon-wrap"><i class="fa-solid fa-list-check"></i><span class="badge rounded-pill text-bg-warning nav-tareas-glovo"><?= (int) $navTareasPendientes ?></span></span>
@@ -103,20 +121,25 @@ $notifDropdownAlignClass = $sidebarEsDerecha ? 'dropdown-menu-start' : 'dropdown
             <?php endif; ?>
             <span class="nav-text">Tareas</span>
         </a>
+        <?php endif; ?>
+        <?php if (usuarioTienePermiso('calendario_ver')): ?>
         <a class="nav-link <?= $currentNav === 'calendario' ? 'active' : '' ?>" href="index.php?page=calendario">
             <i class="fa-solid fa-calendar-days"></i><span class="nav-text">Calendario</span>
         </a>
+        <?php endif; ?>
         <a class="nav-link <?= $currentNav === 'mi_entorno' ? 'active' : '' ?>" href="index.php?page=mi_entorno">
             <i class="fa-solid fa-gear"></i><span class="nav-text">Mi entorno</span>
         </a>
-        <?php if ($isAdmin): ?>
+        <?php if ($isAdmin && usuarioTienePermiso('usuarios_gestionar')): ?>
         <a class="nav-link <?= $currentNav === 'usuarios' ? 'active' : '' ?>" href="index.php?page=usuarios">
             <i class="fa-solid fa-user-shield"></i><span class="nav-text">Usuarios</span>
         </a>
         <?php endif; ?>
+        <?php if (usuarioTienePermiso('configuracion_ver')): ?>
         <a class="nav-link <?= $currentNav === 'config' ? 'active' : '' ?>" href="index.php?page=config">
             <i class="fa-solid fa-gear"></i><span class="nav-text">Configuración</span>
         </a>
+        <?php endif; ?>
     </nav>
     <div class="sidebar-footer">
         <!-- Cerrar sesion queda siempre visible al pie del sidebar -->

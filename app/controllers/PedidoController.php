@@ -39,6 +39,7 @@ class PedidoController {
 
     public function create(): void {
         $this->requireAuth();
+        requirePermiso('pedidos_gestionar');
         $workspaceKey = currentWorkspaceKey();
         $clientes = (new Cliente())->getAll($workspaceKey);
         $productos = (new Producto())->getAll($workspaceKey);
@@ -51,6 +52,7 @@ class PedidoController {
      */
     public function store(): void {
         $this->requireAuth();
+        requirePermiso('pedidos_gestionar');
         if (!csrfIsValidRequest()) {
             $this->redirect('index.php?page=pedidos_create&error=csrf');
         }
@@ -112,6 +114,7 @@ class PedidoController {
 
     public function factura(): void {
         $this->requireAuth();
+        requireAlgunoPermiso(['pedidos_gestionar', 'facturacion_ver']);
         $id = (int) ($_GET['id'] ?? 0);
         $workspaceKey = currentWorkspaceKey();
         $editMode = (string) ($_GET['edit'] ?? '') === '1';
@@ -131,6 +134,7 @@ class PedidoController {
      */
     public function facturaGuardar(): void {
         $this->requireAuth();
+        requireAlgunoPermiso(['pedidos_gestionar', 'facturacion_ver']);
         if (!csrfIsValidRequest()) {
             $id = (int) ($_POST['id'] ?? 0);
             $this->redirect('index.php?page=pedido_factura&id=' . $id . '&edit=1&error=csrf');
@@ -174,6 +178,7 @@ class PedidoController {
      */
     public function marcarRealizado(): void {
         $this->requireAuth();
+        requirePermiso('pedidos_gestionar');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
             $this->redirect('index.php?page=pedidos&error=csrf');
         }

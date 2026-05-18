@@ -8,7 +8,7 @@ ob_start();
     <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
             <h1 class="h4 mb-0">Productos</h1>
-            <?php if (!empty($isAdmin)): ?>
+            <?php if (usuarioTienePermiso('productos_gestionar')): ?>
             <a href="index.php?page=productos_create" class="btn btn-success">
                 <i class="fa-solid fa-plus me-1"></i>Nuevo producto
             </a>
@@ -36,14 +36,14 @@ ob_start();
                                 <td class="text-end"><?= number_format((float) $row['precio'], 2, ',', '.') ?> €</td>
                                 <td class="text-end"><?= (int) $row['stock'] ?></td>
                                 <td class="text-end text-nowrap">
-                                    <?php if (!empty($isAdmin)): ?>
+                                    <?php if (usuarioTienePermiso('productos_gestionar')): ?>
                                     <a href="index.php?page=productos_edit&id=<?= (int) $row['id'] ?>"
                                        class="btn btn-sm btn-outline-primary"
                                        title="Editar">
                                         <i class="fa-solid fa-pen"></i>
                                     </a>
                                     <?php endif; ?>
-                                    <?php if (!empty($isAdmin)): ?>
+                                    <?php if (usuarioTienePermiso('productos_gestionar')): ?>
                                     <form method="post" action="index.php?page=productos_delete" class="d-inline js-confirm-delete" data-confirm-message="¿Eliminar este producto?">
                                         <?= csrfInput() ?>
                                         <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

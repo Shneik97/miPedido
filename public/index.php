@@ -126,6 +126,7 @@ if ($page === 'logout') {
 }
 
 if (isset($controllerRoutes[$page])) {
+    authEnforcePermisoPagina($page);
     [$controllerClass, $method] = $controllerRoutes[$page];
     dispatchController($controllerClass, $method);
     return;

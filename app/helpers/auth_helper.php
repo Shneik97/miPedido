@@ -137,3 +137,5 @@ function csrfIsValidRequest(): bool
     // hash_equals protege de comparaciones inseguras de strings.
     return $sent !== '' && $sessionToken !== '' && hash_equals($sessionToken, $sent);
 }
+
+require_once __DIR__ . '/permisos_helper.php';

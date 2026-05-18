@@ -32,9 +32,11 @@ $estadosMap = [
     <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <h1 class="h4 mb-0">Pedidos</h1>
+            <?php if (usuarioTienePermiso('pedidos_gestionar')): ?>
             <a href="index.php?page=pedidos_create" class="btn btn-success">
                 <i class="fa-solid fa-plus me-1"></i>Nuevo pedido
             </a>
+            <?php endif; ?>
         </div>
         <?php if ($okMsg === 'realizado'): ?>
             <div class="alert alert-success py-2 small mb-3" role="alert">Pedido marcado como <strong>realizado</strong>.</div>
@@ -109,7 +111,7 @@ $estadosMap = [
                                             <i class="fa-brands fa-whatsapp"></i>
                                         </span>
                                     <?php endif; ?>
-                                    <?php if ($puedeRealizado): ?>
+                                    <?php if ($puedeRealizado && usuarioTienePermiso('pedidos_gestionar')): ?>
                                         <form method="post" action="index.php?page=pedidos_marcar_realizado" class="d-inline js-confirm-realizado" data-confirm-message="¿Marcar este pedido como REALIZADO? Se guardará la fecha de confirmación.">
                                             <?= csrfInput() ?>
                                             <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

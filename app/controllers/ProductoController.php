@@ -36,13 +36,13 @@ class ProductoController {
 
     public function create() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('productos_gestionar');
         require __DIR__ . '/../views/productos/create.php';
     }
 
     public function store() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('productos_gestionar');
         if (!csrfIsValidRequest()) {
             $this->redirect('index.php?page=productos&error=csrf');
         }
@@ -54,7 +54,7 @@ class ProductoController {
 
     public function edit() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('productos_gestionar');
         $id = $_GET['id'] ?? '';
         $workspaceKey = currentWorkspaceKey();
         $producto = new Producto();
@@ -67,7 +67,7 @@ class ProductoController {
 
     public function update() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('productos_gestionar');
         if (!csrfIsValidRequest()) {
             $this->redirect('index.php?page=productos&error=csrf');
         }
@@ -80,7 +80,7 @@ class ProductoController {
 
     public function delete(): void {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('productos_gestionar');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
             $this->redirect('index.php?page=productos&error=csrf');
         }

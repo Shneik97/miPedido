@@ -70,6 +70,7 @@ class TareaController {
 
     public function cambiarEstado(): void {
         $this->requireAuth();
+        requirePermiso('tareas_gestionar');
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
             $this->redirect('index.php?page=tareas');
         }

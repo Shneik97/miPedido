@@ -120,8 +120,7 @@ class Usuario {
 
     /**
      * Catálogo de permisos disponibles para marcar en la pantalla de edición de usuario.
-     * Nota: de momento se guardan/gestionan aquí; aplicar estos permisos en cada módulo
-     * se puede hacer en una fase posterior.
+     * Se aplican en menú, router y vistas vía permisos_helper.php.
      *
      * @return list<array{id:int, clave:string, nombre:string, descripcion:string, orden:int}>
      */

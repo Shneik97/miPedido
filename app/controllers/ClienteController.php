@@ -41,13 +41,13 @@ class ClienteController {
      */
     public function create() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('clientes_gestionar');
         require __DIR__ . '/../views/clientes/create.php';
     }
 
     public function store() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('clientes_gestionar');
         // CSRF: solo aceptamos el formulario generado por nuestra app.
         if (!csrfIsValidRequest()) {
             $this->redirect('index.php?page=clientes&error=csrf');
@@ -60,7 +60,7 @@ class ClienteController {
 
     public function edit() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('clientes_gestionar');
         $id = $_GET['id'] ?? '';
         $workspaceKey = currentWorkspaceKey();
         $cliente = new Cliente();
@@ -73,7 +73,7 @@ class ClienteController {
 
     public function update() {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('clientes_gestionar');
         if (!csrfIsValidRequest()) {
             $this->redirect('index.php?page=clientes&error=csrf');
         }
@@ -89,7 +89,7 @@ class ClienteController {
      */
     public function delete(): void {
         $this->requireAuth();
-        checkRole('admin');
+        requirePermiso('clientes_gestionar');
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || !csrfIsValidRequest()) {
             $this->redirect('index.php?page=clientes&error=csrf');
         }

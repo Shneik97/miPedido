@@ -36,12 +36,10 @@ class LoginController
         unset($usuario['password']);
         $usuario['preferencias_ui'] = preferenciasUiNormalize($usuario['preferencias_ui'] ?? null);
         $_SESSION['usuario'] = $usuario;
+        authRefreshPermisosSesion();
         mipedido_sidebar_emit_collapse_cookie(!empty($usuario['preferencias_ui']['sidebar_collapsed']));
 
-        if (((string) ($usuario['rol'] ?? '')) === 'admin' && trim((string) ($usuario['plan_actual'] ?? '')) === '') {
-            $this->redirect('index.php?page=plan_select');
-        }
-        $this->redirect('index.php?page=dashboard');
+        $this->redirect(authLandingUrlTrasLogin());
     }
 
     /**
