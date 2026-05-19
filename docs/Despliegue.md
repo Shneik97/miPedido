@@ -1,6 +1,6 @@
-# Despliegue (nivel estudiante)
+# Despliegue
 
-Este documento explica, paso a paso y con lenguaje simple, como publicar `miPedido` en internet usando Railway.
+Este documento explica, como publicar `miPedido` en internet usando Railway.
 
 ---
 
@@ -45,7 +45,7 @@ Antes de desplegar, deja esto listo:
 
 ---
 
-## 3.1) Que ya esta preparado en el codigo y que haces tu
+## 3.1) Que ya esta preparado en el codigo y que haces tú
 
 **En el repositorio (listo para usar):**
 
@@ -55,7 +55,7 @@ Antes de desplegar, deja esto listo:
 - `config/database.php` leyendo `DB_*` desde el entorno.
 - Deteccion de HTTPS detras de proxy (`X-Forwarded-Proto`) para cookies de sesion en despliegues con TLS.
 
-**Solo tu puedes / debes hacerlo (Railway y cuentas):**
+**Solo tu puedes hacer esto (Railway y cuentas):**
 
 - Crear proyecto en Railway, conectar GitHub, elegir rama.
 - Crear el servicio **MySQL** y enlazar variables al servicio web (ver paso 4).
