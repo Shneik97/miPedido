@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers/auth_helper.php';
+// Vista de acceso denegado para rutas sin permisos.
 authEnsureSession();
 $pageTitle = 'Acceso denegado';
 $currentNav = '';

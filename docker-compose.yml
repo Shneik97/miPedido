@@ -1,17 +1,24 @@
 # MySQL local para desarrollo. Puerto host 3307 -> 3306 del contenedor (coherente con config/database.php).
 services:
   mysql:
+    # Imagen oficial de MySQL 8 (versión estable para entorno de prácticas).
     image: mysql:8.0
     container_name: mipedido-mysql
     restart: unless-stopped
     environment:
+      # Clave del usuario root del contenedor (solo entorno local).
       MYSQL_ROOT_PASSWORD: root
+      # Base de datos inicial que se crea al arrancar por primera vez.
       MYSQL_DATABASE: mipedido
     ports:
+      # Acceso desde tu PC: localhost:3307 -> mysql del contenedor (3306).
       - "3307:3306"
     volumes:
+      # Volumen persistente: conserva datos aunque reinicies o recrees el contenedor.
       - mysql_data:/var/lib/mysql
+      # Script de inicialización: se ejecuta en arranque limpio para crear esquema y datos base.
       - ./config/database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
 
 volumes:
+  # Nombre del volumen Docker donde se guardan los datos de MySQL.
   mysql_data:

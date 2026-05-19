@@ -1,4 +1,5 @@
 <?php
+// Formulario para editar datos de un cliente existente.
 $pageTitle = 'Editar cliente';
 $currentNav = 'clientes';
 ob_start();
@@ -7,6 +8,7 @@ ob_start();
     <div class="card-body">
         <h1 class="h4 mb-4">Editar cliente</h1>
         <form action="index.php?page=clientes_update" method="POST" class="col-lg-8">
+            <?= csrfInput() ?>
             <input type="hidden" name="id" value="<?= (int) $c['id'] ?>">
             <div class="mb-3">
                 <label for="nombre" class="form-label">Nombre</label>
